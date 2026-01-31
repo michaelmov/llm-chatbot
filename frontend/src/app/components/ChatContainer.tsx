@@ -1,0 +1,150 @@
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { MessageList } from "./MessageList";
+import { ChatInput } from "./ChatInput";
+import { StatusIndicator } from "./StatusIndicator";
+import { useWebSocket } from "../hooks/useWebSocket";
+import type { Message } from "./MessageBubble";
+
+const SYSTEM_PROMPT = "You are a helpful assistant.";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001/ws";
+
+export function ChatContainer() {
+  const [messages, setMessages] = useState<Message[]>([
+    { id: "system", role: "system", content: SYSTEM_PROMPT },
+  ]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const currentRequestIdRef = useRef<string | null>(null);
+  const streamingMessageIdRef = useRef<string | null>(null);
+
+  const handleMessage = useCallback(
+    (message: {
+      type: string;
+      token?: string;
+      text?: string;
+      error?: string;
+      requestId?: string;
+    }) => {
+      switch (message.type) {
+        case "start":
+          setIsStreaming(true);
+          const assistantId = uuidv4();
+          streamingMessageIdRef.current = assistantId;
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, role: "assistant", content: "" },
+          ]);
+          break;
+
+        case "token":
+          if (streamingMessageIdRef.current && message.token) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === streamingMessageIdRef.current
+                  ? { ...m, content: m.content + message.token }
+                  : m
+              )
+            );
+          }
+          break;
+
+        case "done":
+          setIsStreaming(false);
+          if (streamingMessageIdRef.current && message.text) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === streamingMessageIdRef.current
+                  ? { ...m, content: message.text! }
+                  : m
+              )
+            );
+          }
+          currentRequestIdRef.current = null;
+          streamingMessageIdRef.current = null;
+          break;
+
+        case "error":
+          setIsStreaming(false);
+          if (streamingMessageIdRef.current) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === streamingMessageIdRef.current
+                  ? { ...m, content: `Error: ${message.error}` }
+                  : m
+              )
+            );
+          }
+          currentRequestIdRef.current = null;
+          streamingMessageIdRef.current = null;
+          break;
+
+        case "canceled":
+          setIsStreaming(false);
+          currentRequestIdRef.current = null;
+          streamingMessageIdRef.current = null;
+          break;
+      }
+    },
+    []
+  );
+
+  const { connectionStatus, sendChat, sendCancel, isConnected } = useWebSocket({
+    url: WS_URL,
+    onMessage: handleMessage,
+  });
+
+  const handleSend = useCallback(
+    (content: string) => {
+      const userMessage: Message = { id: uuidv4(), role: "user", content };
+      const newMessages = [...messages, userMessage];
+      setMessages(newMessages);
+
+      const requestId = uuidv4();
+      currentRequestIdRef.current = requestId;
+
+      const chatMessages = newMessages.map(({ role, content }) => ({
+        role,
+        content,
+      }));
+      sendChat(requestId, chatMessages);
+    },
+    [messages, sendChat]
+  );
+
+  const handleStop = useCallback(() => {
+    if (currentRequestIdRef.current) {
+      sendCancel(currentRequestIdRef.current);
+    }
+  }, [sendCancel]);
+
+  return (
+    <div className="flex h-full max-h-screen w-full flex-col bg-white">
+      <div className="border-b border-gray-200">
+        <div className="mx-auto w-full max-w-2xl px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold">Chat</h1>
+            <StatusIndicator
+              connectionStatus={connectionStatus}
+              isStreaming={isStreaming}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto h-full max-w-2xl">
+          <MessageList messages={messages} />
+        </div>
+      </div>
+      <div className="mx-auto w-full max-w-2xl px-4 py-4">
+        <ChatInput
+          onSend={handleSend}
+          onStop={handleStop}
+          isStreaming={isStreaming}
+          disabled={!isConnected}
+        />
+      </div>
+    </div>
+  );
+}

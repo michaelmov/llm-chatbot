@@ -1,10 +1,22 @@
-import { ChatAnthropic } from '@langchain/anthropic';
-import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from '@langchain/core/messages';
-import type { ChatMessage, LLMProvider, ProviderConfig, StreamCallbacks } from './types.js';
+import { ChatAnthropic } from "@langchain/anthropic";
+import { createAgent } from "langchain";
+import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+  BaseMessage,
+} from "@langchain/core/messages";
+import type {
+  ChatMessage,
+  LLMProvider,
+  ProviderConfig,
+  StreamCallbacks,
+} from "./types.js";
 
 export class AnthropicProvider implements LLMProvider {
-  public readonly name = 'anthropic';
+  public readonly name = "anthropic";
   private model: ChatAnthropic;
+  private agent: ReturnType<typeof createAgent>;
 
   constructor(config: ProviderConfig) {
     this.model = new ChatAnthropic({
@@ -14,16 +26,21 @@ export class AnthropicProvider implements LLMProvider {
       anthropicApiKey: config.apiKey,
       streaming: true,
     });
+
+    this.agent = createAgent({
+      model: this.model,
+      tools: [],
+    });
   }
 
   private convertMessages(messages: ChatMessage[]): BaseMessage[] {
     return messages.map((msg) => {
       switch (msg.role) {
-        case 'system':
+        case "system":
           return new SystemMessage(msg.content);
-        case 'user':
+        case "user":
           return new HumanMessage(msg.content);
-        case 'assistant':
+        case "assistant":
           return new AIMessage(msg.content);
         default:
           throw new Error(`Unknown message role: ${msg.role}`);
@@ -37,21 +54,31 @@ export class AnthropicProvider implements LLMProvider {
     abortSignal?: AbortSignal
   ): Promise<void> {
     const langchainMessages = this.convertMessages(messages);
-    let fullText = '';
+    let fullText = "";
 
     try {
-      const stream = await this.model.stream(langchainMessages, {
-        signal: abortSignal,
-      });
+      const stream = await this.agent.stream(
+        { messages: langchainMessages },
+        { streamMode: "messages", signal: abortSignal }
+      );
 
-      for await (const chunk of stream) {
+      for await (const [token, metadata] of stream) {
         if (abortSignal?.aborted) {
           break;
         }
-        const token = typeof chunk.content === 'string' ? chunk.content : '';
-        if (token) {
-          fullText += token;
-          callbacks.onToken(token);
+
+        // Extract text content from the token
+        if (typeof token.content === "string" && token.content) {
+          fullText += token.content;
+          callbacks.onToken(token.content);
+        } else if (Array.isArray(token.content)) {
+          // Handle content blocks (e.g., from Anthropic)
+          for (const block of token.content) {
+            if (block.type === "text" && block.text) {
+              fullText += block.text;
+              callbacks.onToken(block.text);
+            }
+          }
         }
       }
 
@@ -62,7 +89,9 @@ export class AnthropicProvider implements LLMProvider {
       if (abortSignal?.aborted) {
         return;
       }
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      callbacks.onError(
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 }

@@ -7,6 +7,8 @@ export interface StreamCallbacks {
   onToken: (token: string) => void;
   onComplete: (fullText: string) => void;
   onError: (error: Error) => void;
+  onToolCall?: (toolName: string, args: Record<string, unknown>) => void;
+  onToolResult?: (toolName: string, result: string) => void;
 }
 
 export interface LLMProvider {

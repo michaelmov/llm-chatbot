@@ -12,6 +12,7 @@ import type {
   ProviderConfig,
   StreamCallbacks,
 } from "./types.js";
+import { tools } from "../tools/index.js";
 
 export class AnthropicProvider implements LLMProvider {
   public readonly name = "anthropic";
@@ -29,7 +30,7 @@ export class AnthropicProvider implements LLMProvider {
 
     this.agent = createAgent({
       model: this.model,
-      tools: [],
+      tools,
     });
   }
 
@@ -65,6 +66,11 @@ export class AnthropicProvider implements LLMProvider {
       for await (const [token, metadata] of stream) {
         if (abortSignal?.aborted) {
           break;
+        }
+
+        // Only stream AI messages, not tool messages
+        if (token.type !== "ai") {
+          continue;
         }
 
         // Extract text content from the token

@@ -11,6 +11,10 @@ export const config = {
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
   },
+  weather: {
+    apiKey: process.env.WEATHER_API_KEY || '',
+    baseUrl: 'https://api.weatherapi.com/v1',
+  },
   validation: {
     maxPayloadSize: 50000,
   },

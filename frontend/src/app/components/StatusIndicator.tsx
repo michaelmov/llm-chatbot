@@ -19,7 +19,7 @@ export function StatusIndicator({ connectionStatus, isStreaming }: StatusIndicat
   const { color, text } = statusConfig[connectionStatus];
 
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-600">
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
       <span className={cn('h-2 w-2 rounded-full', color)} />
       <span>{isStreaming ? 'Streaming...' : text}</span>
     </div>

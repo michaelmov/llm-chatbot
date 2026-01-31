@@ -20,7 +20,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       <div
         className={cn(
           'max-w-[80%] rounded-lg px-4 py-2',
-          isUser ? 'bg-gray-200 text-gray-900' : 'border border-gray-200 bg-white text-gray-900'
+          isUser ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-card-foreground'
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>

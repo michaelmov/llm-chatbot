@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { StatusIndicator } from "./StatusIndicator";
+import { ModeToggle } from "@/components/mode-toggle";
 import { useWebSocket } from "../hooks/useWebSocket";
 import type { Message } from "./MessageBubble";
 
@@ -120,15 +121,18 @@ export function ChatContainer() {
   }, [sendCancel]);
 
   return (
-    <div className="flex h-full max-h-screen w-full flex-col bg-white">
-      <div className="border-b border-gray-200">
+    <div className="flex h-full max-h-screen w-full flex-col bg-background">
+      <div className="border-b border-border">
         <div className="mx-auto w-full max-w-2xl px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Chat</h1>
-            <StatusIndicator
-              connectionStatus={connectionStatus}
-              isStreaming={isStreaming}
-            />
+            <div className="flex items-center gap-2">
+              <StatusIndicator
+                connectionStatus={connectionStatus}
+                isStreaming={isStreaming}
+              />
+              <ModeToggle />
+            </div>
           </div>
         </div>
       </div>

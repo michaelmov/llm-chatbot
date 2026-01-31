@@ -121,8 +121,8 @@ export function ChatContainer() {
   }, [sendCancel]);
 
   return (
-    <div className="flex h-full max-h-screen w-full flex-col bg-background">
-      <div className="border-b border-border">
+    <div className="flex h-full max-h-screen w-full flex-col bg-white dark:bg-slate-950">
+      <div className="border-b border-slate-200 dark:border-slate-800">
         <div className="mx-auto w-full max-w-2xl px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Chat</h1>

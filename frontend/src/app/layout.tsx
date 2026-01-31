@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen">
+      <body className="min-h-screen  bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

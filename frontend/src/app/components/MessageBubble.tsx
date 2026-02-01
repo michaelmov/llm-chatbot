@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { parse } from "marked";
 
 export interface Message {
   id: string;
@@ -14,6 +15,9 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const parsedMessageContent = isUser
+    ? message.content
+    : parse(message.content);
 
   return (
     <div
@@ -30,7 +34,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             !isUser,
         })}
       >
-        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        <p
+          className="whitespace-pre-wrap break-words"
+          dangerouslySetInnerHTML={{ __html: parsedMessageContent }}
+        />
       </div>
     </div>
   );

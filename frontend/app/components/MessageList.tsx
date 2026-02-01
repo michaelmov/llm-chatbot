@@ -24,9 +24,7 @@ export function MessageList({ messages }: MessageListProps) {
             Send a message to start the conversation
           </div>
         ) : (
-          visibleMessages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))
+          visibleMessages.map((message) => <MessageBubble key={message.id} message={message} />)
         )}
         <div ref={bottomRef} />
       </div>

@@ -46,9 +46,7 @@ export const weatherTool = tool(
     description:
       'Get current weather information for a location. Use this when users ask about weather, temperature, or conditions for a city or place.',
     schema: z.object({
-      location: z
-        .string()
-        .describe('City name, US zip code, or coordinates (lat,lon)'),
+      location: z.string().describe('City name, US zip code, or coordinates (lat,lon)'),
     }),
   }
 );
@@ -68,13 +66,25 @@ export const weatherForecastTool = tool(
     const header = `${days}-Day Weather Forecast for ${data.location.name}, ${data.location.country}:\n`;
 
     const dailyForecasts = forecastDays
-      .map((day: { date: string; day: { maxtemp_f: number; maxtemp_c: number; mintemp_f: number; mintemp_c: number; condition: { text: string }; daily_chance_of_rain: number } }) => {
-        const emoji = getConditionEmoji(day.day.condition.text);
-        return `📅 ${formatForecastDate(day.date)}
+      .map(
+        (day: {
+          date: string;
+          day: {
+            maxtemp_f: number;
+            maxtemp_c: number;
+            mintemp_f: number;
+            mintemp_c: number;
+            condition: { text: string };
+            daily_chance_of_rain: number;
+          };
+        }) => {
+          const emoji = getConditionEmoji(day.day.condition.text);
+          return `📅 ${formatForecastDate(day.date)}
    🌡️ High: ${day.day.maxtemp_f}°F (${day.day.maxtemp_c}°C) | Low: ${day.day.mintemp_f}°F (${day.day.mintemp_c}°C)
    ${emoji} ${day.day.condition.text}
    💧 Chance of rain: ${day.day.daily_chance_of_rain}%`;
-      })
+        }
+      )
       .join('\n\n');
 
     return header + '\n' + dailyForecasts;
@@ -84,9 +94,7 @@ export const weatherForecastTool = tool(
     description:
       'Get a multi-day weather forecast for a location. Use this when users ask about upcoming weather, forecast, or want to know weather for future days.',
     schema: z.object({
-      location: z
-        .string()
-        .describe('City name, US zip code, or coordinates (lat,lon)'),
+      location: z.string().describe('City name, US zip code, or coordinates (lat,lon)'),
       days: z
         .number()
         .min(1)

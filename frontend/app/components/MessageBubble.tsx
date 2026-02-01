@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
-import { parse } from "marked";
+import { cn } from '@/lib/utils';
+import { parse } from 'marked';
 
 export interface Message {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -14,23 +14,20 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
-  const isUser = message.role === "user";
-  const parsedMessageContent = isUser
-    ? message.content
-    : parse(message.content);
+  const isUser = message.role === 'user';
+  const parsedMessageContent = isUser ? message.content : parse(message.content);
 
   return (
     <div
-      className={cn("flex rounded-md", {
-        "justify-end": isUser,
-        "justify-start": !isUser,
+      className={cn('flex rounded-md', {
+        'justify-end': isUser,
+        'justify-start': !isUser,
       })}
     >
       <div
-        className={cn("max-w-[80%] rounded-lg px-4 py-2", {
-          "bg-blue-600 text-slate-50 dark:bg-blue-500 dark:text-slate-900":
-            isUser,
-          "border border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50":
+        className={cn('max-w-[80%] rounded-lg px-4 py-2', {
+          'bg-blue-600 text-slate-50 dark:bg-blue-500 dark:text-slate-900': isUser,
+          'border border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50':
             !isUser,
         })}
       >

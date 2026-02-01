@@ -96,41 +96,41 @@ npm run dev
 
 ### Client → Server
 
-| Type | Payload | Description |
-|------|---------|-------------|
-| `chat` | `{ requestId, messages }` | Send chat messages |
-| `cancel` | `{ requestId }` | Cancel streaming |
-| `ping` | - | Keepalive |
+| Type     | Payload                   | Description        |
+| -------- | ------------------------- | ------------------ |
+| `chat`   | `{ requestId, messages }` | Send chat messages |
+| `cancel` | `{ requestId }`           | Cancel streaming   |
+| `ping`   | -                         | Keepalive          |
 
 ### Server → Client
 
-| Type | Payload | Description |
-|------|---------|-------------|
-| `ready` | - | Connection established |
-| `start` | `{ requestId }` | Streaming started |
-| `token` | `{ requestId, token }` | Token received |
-| `done` | `{ requestId, text }` | Streaming complete |
-| `error` | `{ requestId?, error }` | Error occurred |
-| `canceled` | `{ requestId }` | Request canceled |
-| `pong` | - | Ping response |
+| Type       | Payload                 | Description            |
+| ---------- | ----------------------- | ---------------------- |
+| `ready`    | -                       | Connection established |
+| `start`    | `{ requestId }`         | Streaming started      |
+| `token`    | `{ requestId, token }`  | Token received         |
+| `done`     | `{ requestId, text }`   | Streaming complete     |
+| `error`    | `{ requestId?, error }` | Error occurred         |
+| `canceled` | `{ requestId }`         | Request canceled       |
+| `pong`     | -                       | Ping response          |
 
 ## Configuration
 
 ### Backend
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | 3001 | Server port |
-| `LLM_PROVIDER` | anthropic | LLM provider |
-| `MODEL_NAME` | claude-3-5-sonnet-latest | Model name |
-| `MODEL_TEMPERATURE` | 0.3 | Temperature |
-| `MODEL_MAX_TOKENS` | 4096 | Max tokens |
-| `ANTHROPIC_API_KEY` | - | API key |
+| Variable            | Default                  | Description  |
+| ------------------- | ------------------------ | ------------ |
+| `PORT`              | 3001                     | Server port  |
+| `LLM_PROVIDER`      | anthropic                | LLM provider |
+| `MODEL_NAME`        | claude-3-5-sonnet-latest | Model name   |
+| `MODEL_TEMPERATURE` | 0.3                      | Temperature  |
+| `MODEL_MAX_TOKENS`  | 4096                     | Max tokens   |
+| `ANTHROPIC_API_KEY` | -                        | API key      |
 
 ### Frontend
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable             | Default                | Description           |
+| -------------------- | ---------------------- | --------------------- |
 | `NEXT_PUBLIC_WS_URL` | ws://localhost:3001/ws | Backend WebSocket URL |
 
 ## Adding New Providers

@@ -32,10 +32,12 @@ Express server with WebSocket support for real-time LLM streaming using LangChai
 **Provider pattern:** The `LLMProvider` interface (`providers/types.ts`) defines the contract for LLM integrations. Currently uses Anthropic via LangChain with agent support for tool calling. Providers are registered in `providers/factory.ts`.
 
 **Tools:** LangChain tools are defined in `tools/`:
+
 - `weatherTool` - Get current weather for a location
 - `weatherForecastTool` - Get 5-day weather forecast
 
 **WebSocket protocol:**
+
 - Client sends: `chat` (with requestId + messages), `cancel`, `ping`
 - Server responds: `ready`, `start`, `token`, `done`, `error`, `canceled`, `pong`
 
@@ -48,6 +50,7 @@ Express server with WebSocket support for real-time LLM streaming using LangChai
 Next.js 16 with React 19, using Tailwind CSS 4 and shadcn/ui components.
 
 **Directory structure:**
+
 - `/frontend/app/` - Next.js app router pages and app-specific components
 - `/frontend/app/components/` - Chat components (ChatContainer, MessageList, MessageBubble, ChatInput, StatusIndicator)
 - `/frontend/app/hooks/` - Custom hooks (useWebSocket)
@@ -56,6 +59,7 @@ Next.js 16 with React 19, using Tailwind CSS 4 and shadcn/ui components.
 **Component hierarchy:** `layout.tsx` (theme provider) → `page.tsx` → `ChatContainer.tsx` (orchestrates state, WebSocket hook) → `MessageList`, `MessageBubble`, `ChatInput`, `StatusIndicator`
 
 **Key features:**
+
 - `useWebSocket.ts` manages connection lifecycle, reconnection (3s delay), and 30s keep-alive pings
 - Markdown rendering via `marked` library in MessageBubble
 - System messages filtered from UI display

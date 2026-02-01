@@ -34,12 +34,7 @@ export function ModeToggle() {
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-9 w-9"
-      onClick={cycleTheme}
-    >
+    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={cycleTheme}>
       {theme === 'light' && <Sun className="h-4 w-4" />}
       {theme === 'system' && <Monitor className="h-4 w-4" />}
       {theme === 'dark' && <Moon className="h-4 w-4" />}

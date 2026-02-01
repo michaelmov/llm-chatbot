@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useCallback, useRef, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-import { MessageList } from "./MessageList";
-import { ChatInput } from "./ChatInput";
-import { StatusIndicator } from "./StatusIndicator";
-import { ModeToggle } from "@/components/mode-toggle";
-import { useWebSocket } from "../hooks/useWebSocket";
-import type { Message } from "./MessageBubble";
+import { useCallback, useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { MessageList } from './MessageList';
+import { ChatInput } from './ChatInput';
+import { StatusIndicator } from './StatusIndicator';
+import { ModeToggle } from '@/components/mode-toggle';
+import { useWebSocket } from '../hooks/useWebSocket';
+import type { Message } from './MessageBubble';
 
-const SYSTEM_PROMPT = "You are a helpful assistant.";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001/ws";
+const SYSTEM_PROMPT = 'You are a helpful assistant.';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws';
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: "system", role: "system", content: SYSTEM_PROMPT },
+    { id: 'system', role: 'system', content: SYSTEM_PROMPT },
   ]);
   const [isStreaming, setIsStreaming] = useState(false);
   const currentRequestIdRef = useRef<string | null>(null);
@@ -29,17 +29,14 @@ export function ChatContainer() {
       requestId?: string;
     }) => {
       switch (message.type) {
-        case "start":
+        case 'start':
           setIsStreaming(true);
           const assistantId = uuidv4();
           streamingMessageIdRef.current = assistantId;
-          setMessages((prev) => [
-            ...prev,
-            { id: assistantId, role: "assistant", content: "" },
-          ]);
+          setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
           break;
 
-        case "token":
+        case 'token':
           if (streamingMessageIdRef.current && message.token) {
             setMessages((prev) =>
               prev.map((m) =>
@@ -51,14 +48,12 @@ export function ChatContainer() {
           }
           break;
 
-        case "done":
+        case 'done':
           setIsStreaming(false);
           if (streamingMessageIdRef.current && message.text) {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === streamingMessageIdRef.current
-                  ? { ...m, content: message.text! }
-                  : m
+                m.id === streamingMessageIdRef.current ? { ...m, content: message.text! } : m
               )
             );
           }
@@ -66,7 +61,7 @@ export function ChatContainer() {
           streamingMessageIdRef.current = null;
           break;
 
-        case "error":
+        case 'error':
           setIsStreaming(false);
           if (streamingMessageIdRef.current) {
             setMessages((prev) =>
@@ -81,7 +76,7 @@ export function ChatContainer() {
           streamingMessageIdRef.current = null;
           break;
 
-        case "canceled":
+        case 'canceled':
           setIsStreaming(false);
           currentRequestIdRef.current = null;
           streamingMessageIdRef.current = null;
@@ -98,7 +93,7 @@ export function ChatContainer() {
 
   const handleSend = useCallback(
     (content: string) => {
-      const userMessage: Message = { id: uuidv4(), role: "user", content };
+      const userMessage: Message = { id: uuidv4(), role: 'user', content };
       const newMessages = [...messages, userMessage];
       setMessages(newMessages);
 
@@ -127,10 +122,7 @@ export function ChatContainer() {
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold">Chat</h1>
             <div className="flex items-center gap-2">
-              <StatusIndicator
-                connectionStatus={connectionStatus}
-                isStreaming={isStreaming}
-              />
+              <StatusIndicator connectionStatus={connectionStatus} isStreaming={isStreaming} />
               <ModeToggle />
             </div>
           </div>

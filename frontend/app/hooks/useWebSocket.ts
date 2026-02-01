@@ -22,6 +22,7 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const connectRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -52,7 +53,9 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }
-      reconnectTimeoutRef.current = setTimeout(connect, 3000);
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connectRef.current?.();
+      }, 3000);
     };
 
     ws.onerror = () => {
@@ -61,6 +64,10 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
 
     wsRef.current = ws;
   }, [url, onMessage]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -94,7 +101,7 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
   );
 
   useEffect(() => {
-    connect();
+    queueMicrotask(connect);
     return () => disconnect();
   }, [connect, disconnect]);
 

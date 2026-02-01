@@ -1,5 +1,6 @@
 'use client';
 
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { parse } from 'marked';
 
@@ -17,6 +18,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const parsedMessageContent = isUser ? message.content : parse(message.content);
 
+  console.log('parsedMessageContent', parsedMessageContent);
+
   return (
     <div
       className={cn('flex rounded-md', {
@@ -31,10 +34,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             !isUser,
         })}
       >
-        <p
-          className="whitespace-pre-wrap wrap-break-word"
-          dangerouslySetInnerHTML={{ __html: parsedMessageContent }}
-        />
+        {!parsedMessageContent ? (
+          <div className="flex justify-center py-2">
+            <Spinner />
+          </div>
+        ) : (
+          <p
+            className="whitespace-pre-wrap wrap-break-word"
+            dangerouslySetInnerHTML={{ __html: parsedMessageContent }}
+          />
+        )}
       </div>
     </div>
   );

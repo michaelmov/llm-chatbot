@@ -35,7 +35,8 @@ export const weatherTool = tool(
 
     const data = await response.json();
     const emoji = getConditionEmoji(data.current.condition.text);
-    return `Current weather in ${data.location.name}, ${data.location.country}:
+    return `[VERBATIM OUTPUT - DO NOT REFORMAT]
+Current weather in ${data.location.name}, ${data.location.country}:
 - Temperature: ${data.current.temp_f}°F (${data.current.temp_c}°C)
 - Condition: ${emoji} ${data.current.condition.text}
 - Humidity: ${data.current.humidity}%
@@ -63,7 +64,8 @@ export const weatherForecastTool = tool(
     const data = await response.json();
     const forecastDays = data.forecast.forecastday;
 
-    const header = `${days}-Day Weather Forecast for ${data.location.name}, ${data.location.country}:\n`;
+    const header = `[VERBATIM OUTPUT - DO NOT REFORMAT]
+${days}-Day Weather Forecast for ${data.location.name}, ${data.location.country}:\n`;
 
     const dailyForecasts = forecastDays
       .map(

@@ -9,13 +9,10 @@ import { ModeToggle } from '@/components/mode-toggle';
 import { useWebSocket } from '../hooks/useWebSocket';
 import type { Message } from './MessageBubble';
 
-const SYSTEM_PROMPT = 'You are a helpful assistant.';
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws';
 
 export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 'system', role: 'system', content: SYSTEM_PROMPT },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const currentRequestIdRef = useRef<string | null>(null);
   const streamingMessageIdRef = useRef<string | null>(null);

@@ -21,6 +21,13 @@ export class AnthropicProvider implements LLMProvider {
     this.agent = createAgent({
       model: this.model,
       tools,
+      systemPrompt: `You are a helpful assistant with access to tools.
+
+        CRITICAL INSTRUCTION FOR TOOL OUTPUTS:
+        When a tool returns formatted output, you MUST present it exactly as returned.
+        Do NOT reformat, summarize, paraphrase, or restructure tool outputs.
+        Do NOT add markdown formatting, bullet points, or headers to tool results.
+        Simply pass through the tool's response verbatim, then optionally add brief commentary AFTER the tool output if helpful.`,
     });
   }
 

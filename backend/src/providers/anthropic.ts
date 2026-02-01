@@ -23,11 +23,7 @@ export class AnthropicProvider implements LLMProvider {
       tools,
       systemPrompt: `You are a helpful assistant with access to tools.
 
-        CRITICAL INSTRUCTION FOR TOOL OUTPUTS:
-        When a tool returns formatted output, you MUST present it exactly as returned.
-        Do NOT reformat, summarize, paraphrase, or restructure tool outputs.
-        Do NOT add markdown formatting, bullet points, or headers to tool results.
-        Simply pass through the tool's response verbatim, then optionally add brief commentary AFTER the tool output if helpful.`,
+CRITICAL: Tool outputs are streamed directly to the user. Do NOT repeat, reformat, or summarize tool output. Only add brief commentary AFTER if helpful.`,
     });
   }
 
@@ -65,7 +61,16 @@ export class AnthropicProvider implements LLMProvider {
           break;
         }
 
-        // Only stream AI messages, not tool messages
+        // Stream both AI messages and tool messages (for inline tool output)
+        if (token.type === 'tool') {
+          // Stream tool output content inline
+          if (typeof token.content === 'string' && token.content) {
+            fullText += token.content + '\n\n';
+            callbacks.onToken(token.content + '\n\n');
+          }
+          continue;
+        }
+
         if (token.type !== 'ai') {
           continue;
         }

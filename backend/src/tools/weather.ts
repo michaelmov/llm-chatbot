@@ -1,6 +1,11 @@
-import { tool } from '@langchain/core/tools';
+import { tool, type ContentAndArtifact } from '@langchain/core/tools';
 import { z } from 'zod';
 import { config } from '../config.js';
+
+export interface ToolArtifact {
+  shouldSummarize: boolean;
+  rawData?: unknown;
+}
 
 function getConditionEmoji(condition: string): string {
   const c = condition.toLowerCase();
@@ -25,21 +30,26 @@ function formatForecastDate(dateStr: string): string {
 }
 
 export const weatherTool = tool(
-  async ({ location }) => {
+  async ({ location }): Promise<ContentAndArtifact> => {
     const url = `${config.weather.baseUrl}/current.json?key=${config.weather.apiKey}&q=${encodeURIComponent(location)}`;
 
     const response = await fetch(url);
     if (!response.ok) {
-      return `Unable to fetch weather for "${location}". Please check the location name.`;
+      return [
+        `Unable to fetch weather for "${location}". Please check the location name.`,
+        { shouldSummarize: true } as ToolArtifact,
+      ];
     }
 
     const data = await response.json();
     const emoji = getConditionEmoji(data.current.condition.text);
-    return `Current weather in ${data.location.name}, ${data.location.country}:
+    const content = `Current weather in ${data.location.name}, ${data.location.country}:
 - Temperature: ${data.current.temp_f}°F (${data.current.temp_c}°C)
 - Condition: ${emoji} ${data.current.condition.text}
 - Humidity: ${data.current.humidity}%
 - Wind: ${data.current.wind_mph} mph ${data.current.wind_dir}`;
+
+    return [content, { shouldSummarize: false } as ToolArtifact];
   },
   {
     name: 'get_weather',
@@ -48,16 +58,20 @@ export const weatherTool = tool(
     schema: z.object({
       location: z.string().describe('City name, US zip code, or coordinates (lat,lon)'),
     }),
+    responseFormat: 'content_and_artifact',
   }
 );
 
 export const weatherForecastTool = tool(
-  async ({ location, days = 5 }) => {
+  async ({ location, days = 5 }): Promise<ContentAndArtifact> => {
     const url = `${config.weather.baseUrl}/forecast.json?key=${config.weather.apiKey}&q=${encodeURIComponent(location)}&days=${days}&aqi=no&alerts=no`;
 
     const response = await fetch(url);
     if (!response.ok) {
-      return `Unable to fetch weather forecast for "${location}". Please check the location name.`;
+      return [
+        `Unable to fetch weather forecast for "${location}". Please check the location name.`,
+        { shouldSummarize: true } as ToolArtifact,
+      ];
     }
 
     const data = await response.json();
@@ -87,7 +101,8 @@ export const weatherForecastTool = tool(
       )
       .join('\n\n');
 
-    return header + '\n' + dailyForecasts;
+    const content = header + '\n' + dailyForecasts;
+    return [content, { shouldSummarize: false } as ToolArtifact];
   },
   {
     name: 'get_weather_forecast',
@@ -102,5 +117,6 @@ export const weatherForecastTool = tool(
         .optional()
         .describe('Number of days to forecast (1-5). Defaults to 5.'),
     }),
+    responseFormat: 'content_and_artifact',
   }
 );

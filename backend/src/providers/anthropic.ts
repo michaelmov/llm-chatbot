@@ -1,6 +1,13 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { createAgent } from 'langchain';
-import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from '@langchain/core/messages';
+import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+  BaseMessage,
+  ToolMessage,
+} from '@langchain/core/messages';
+import type { ToolArtifact } from '../tools/weather.js';
 import type { ChatMessage, LLMProvider, ProviderConfig, StreamCallbacks } from './types.js';
 import { tools } from '../tools/index.js';
 
@@ -62,12 +69,16 @@ CRITICAL: Tool outputs are streamed directly to the user. Do NOT repeat, reforma
         }
 
         // Stream both AI messages and tool messages (for inline tool output)
-        if (token.type === 'tool') {
-          // Stream tool output content inline
-          if (typeof token.content === 'string' && token.content) {
+        if (ToolMessage.isInstance(token)) {
+          // Access artifact from ToolMessage to check shouldSummarize flag
+          const shouldSummarize = (token.artifact as ToolArtifact | undefined)?.shouldSummarize ?? true;
+
+          if (!shouldSummarize && typeof token.content === 'string' && token.content) {
+            // Stream raw tool output directly to user
             fullText += token.content + '\n\n';
             callbacks.onToken(token.content + '\n\n');
           }
+          // If shouldSummarize is true, skip streaming - LLM will summarize in its response
           continue;
         }
 

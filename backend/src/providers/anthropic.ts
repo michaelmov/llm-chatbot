@@ -1,21 +1,11 @@
-import { ChatAnthropic } from "@langchain/anthropic";
-import { createAgent } from "langchain";
-import {
-  HumanMessage,
-  AIMessage,
-  SystemMessage,
-  BaseMessage,
-} from "@langchain/core/messages";
-import type {
-  ChatMessage,
-  LLMProvider,
-  ProviderConfig,
-  StreamCallbacks,
-} from "./types.js";
-import { tools } from "../tools/index.js";
+import { ChatAnthropic } from '@langchain/anthropic';
+import { createAgent } from 'langchain';
+import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from '@langchain/core/messages';
+import type { ChatMessage, LLMProvider, ProviderConfig, StreamCallbacks } from './types.js';
+import { tools } from '../tools/index.js';
 
 export class AnthropicProvider implements LLMProvider {
-  public readonly name = "anthropic";
+  public readonly name = 'anthropic';
   private model: ChatAnthropic;
   private agent: ReturnType<typeof createAgent>;
 
@@ -37,11 +27,11 @@ export class AnthropicProvider implements LLMProvider {
   private convertMessages(messages: ChatMessage[]): BaseMessage[] {
     return messages.map((msg) => {
       switch (msg.role) {
-        case "system":
+        case 'system':
           return new SystemMessage(msg.content);
-        case "user":
+        case 'user':
           return new HumanMessage(msg.content);
-        case "assistant":
+        case 'assistant':
           return new AIMessage(msg.content);
         default:
           throw new Error(`Unknown message role: ${msg.role}`);
@@ -55,32 +45,32 @@ export class AnthropicProvider implements LLMProvider {
     abortSignal?: AbortSignal
   ): Promise<void> {
     const langchainMessages = this.convertMessages(messages);
-    let fullText = "";
+    let fullText = '';
 
     try {
       const stream = await this.agent.stream(
         { messages: langchainMessages },
-        { streamMode: "messages", signal: abortSignal }
+        { streamMode: 'messages', signal: abortSignal }
       );
 
-      for await (const [token, metadata] of stream) {
+      for await (const [token] of stream) {
         if (abortSignal?.aborted) {
           break;
         }
 
         // Only stream AI messages, not tool messages
-        if (token.type !== "ai") {
+        if (token.type !== 'ai') {
           continue;
         }
 
         // Extract text content from the token
-        if (typeof token.content === "string" && token.content) {
+        if (typeof token.content === 'string' && token.content) {
           fullText += token.content;
           callbacks.onToken(token.content);
         } else if (Array.isArray(token.content)) {
           // Handle content blocks (e.g., from Anthropic)
           for (const block of token.content) {
-            if (block.type === "text" && block.text) {
+            if (block.type === 'text' && typeof block.text === 'string') {
               fullText += block.text;
               callbacks.onToken(block.text);
             }
@@ -95,9 +85,7 @@ export class AnthropicProvider implements LLMProvider {
       if (abortSignal?.aborted) {
         return;
       }
-      callbacks.onError(
-        error instanceof Error ? error : new Error(String(error))
-      );
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
 }

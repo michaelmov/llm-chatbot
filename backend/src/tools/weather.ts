@@ -1,26 +1,26 @@
-import { tool } from "@langchain/core/tools";
-import { z } from "zod";
-import { config } from "../config.js";
+import { tool } from '@langchain/core/tools';
+import { z } from 'zod';
+import { config } from '../config.js';
 
 function getConditionEmoji(condition: string): string {
   const c = condition.toLowerCase();
-  if (c.includes("sunny") || c.includes("clear")) return "☀️";
-  if (c.includes("partly cloudy")) return "⛅";
-  if (c.includes("cloudy") || c.includes("overcast")) return "☁️";
-  if (c.includes("mist") || c.includes("fog")) return "🌫️";
-  if (c.includes("rain") || c.includes("drizzle")) return "🌧️";
-  if (c.includes("thunder") || c.includes("storm")) return "⛈️";
-  if (c.includes("snow") || c.includes("sleet") || c.includes("blizzard")) return "❄️";
-  if (c.includes("wind")) return "💨";
-  return "🌡️";
+  if (c.includes('sunny') || c.includes('clear')) return '☀️';
+  if (c.includes('partly cloudy')) return '⛅';
+  if (c.includes('cloudy') || c.includes('overcast')) return '☁️';
+  if (c.includes('mist') || c.includes('fog')) return '🌫️';
+  if (c.includes('rain') || c.includes('drizzle')) return '🌧️';
+  if (c.includes('thunder') || c.includes('storm')) return '⛈️';
+  if (c.includes('snow') || c.includes('sleet') || c.includes('blizzard')) return '❄️';
+  if (c.includes('wind')) return '💨';
+  return '🌡️';
 }
 
 function formatForecastDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
@@ -42,13 +42,13 @@ export const weatherTool = tool(
 - Wind: ${data.current.wind_mph} mph ${data.current.wind_dir}`;
   },
   {
-    name: "get_weather",
+    name: 'get_weather',
     description:
-      "Get current weather information for a location. Use this when users ask about weather, temperature, or conditions for a city or place.",
+      'Get current weather information for a location. Use this when users ask about weather, temperature, or conditions for a city or place.',
     schema: z.object({
       location: z
         .string()
-        .describe("City name, US zip code, or coordinates (lat,lon)"),
+        .describe('City name, US zip code, or coordinates (lat,lon)'),
     }),
   }
 );
@@ -75,24 +75,24 @@ export const weatherForecastTool = tool(
    ${emoji} ${day.day.condition.text}
    💧 Chance of rain: ${day.day.daily_chance_of_rain}%`;
       })
-      .join("\n\n");
+      .join('\n\n');
 
-    return header + "\n" + dailyForecasts;
+    return header + '\n' + dailyForecasts;
   },
   {
-    name: "get_weather_forecast",
+    name: 'get_weather_forecast',
     description:
-      "Get a multi-day weather forecast for a location. Use this when users ask about upcoming weather, forecast, or want to know weather for future days.",
+      'Get a multi-day weather forecast for a location. Use this when users ask about upcoming weather, forecast, or want to know weather for future days.',
     schema: z.object({
       location: z
         .string()
-        .describe("City name, US zip code, or coordinates (lat,lon)"),
+        .describe('City name, US zip code, or coordinates (lat,lon)'),
       days: z
         .number()
         .min(1)
         .max(5)
         .optional()
-        .describe("Number of days to forecast (1-5). Defaults to 5."),
+        .describe('Number of days to forecast (1-5). Defaults to 5.'),
     }),
   }
 );

@@ -33,7 +33,7 @@ export function startServer() {
   const { server } = createApp();
 
   server.listen(config.port, () => {
-    logger.info(`Server started`, {
+    logger.info('Server started', {
       port: config.port,
       provider: config.provider,
       model: config.model.name,

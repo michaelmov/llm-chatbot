@@ -1,4 +1,4 @@
-import { weatherTool, weatherForecastTool } from "./weather.js";
+import { weatherTool, weatherForecastTool } from './weather.js';
 
 // Export all tools as an array for the agent
 export const tools = [weatherTool, weatherForecastTool];

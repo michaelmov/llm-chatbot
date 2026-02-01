@@ -49,6 +49,8 @@ export function validateMessage(data: string): ValidationResult {
     return { valid: false, error: 'Missing or invalid type field' };
   }
 
+  let totalLength = 0;
+
   switch (msg.type) {
     case 'ping':
       return { valid: true, message: { type: 'ping' } };
@@ -70,7 +72,6 @@ export function validateMessage(data: string): ValidationResult {
         return { valid: false, error: 'Messages must be an array' };
       }
 
-      let totalLength = 0;
       for (const m of msg.messages) {
         if (typeof m !== 'object' || m === null) {
           return { valid: false, error: 'Each message must be an object' };

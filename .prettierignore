@@ -1,0 +1,14 @@
+# Build outputs
+dist
+.next
+out
+
+# Dependencies
+node_modules
+
+# Generated files
+*.lock
+package-lock.json
+
+# Coverage
+coverage

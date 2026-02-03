@@ -1,20 +1,23 @@
 # LLM Chatbot
 
-A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express backend and Next.js frontend.
+A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express backend and Next.js 16 frontend (React 19, Tailwind CSS 4, shadcn/ui).
 
 ## Features
 
 - Real-time token streaming via WebSocket
 - Model-agnostic architecture (currently supports Anthropic Claude)
+- LangChain-based agent with tool calling support
+- Built-in weather tools (current weather and 5-day forecast)
 - Cancel in-progress requests
 - Connection status indicator
-- Responsive chat UI
+- Responsive chat UI with dark mode support
 
 ## Prerequisites
 
 - Node.js 20+
 - npm
 - Anthropic API key
+- Weather API key (optional, from [weatherapi.com](https://www.weatherapi.com/))
 
 ## Project Structure
 
@@ -27,6 +30,7 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 │   │   ├── config.ts     # Configuration
 │   │   ├── server.ts     # Express + WebSocket setup
 │   │   ├── providers/    # LLM provider implementations
+│   │   ├── tools/        # LangChain tools (weather, etc.)
 │   │   ├── websocket/    # WebSocket handling
 │   │   └── utils/        # Utilities
 │   └── package.json
@@ -52,10 +56,11 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
    cp backend/.env.example backend/.env
    ```
 
-   Edit `backend/.env` and add your Anthropic API key:
+   Edit `backend/.env` and add your API keys:
 
    ```
    ANTHROPIC_API_KEY=your-api-key-here
+   WEATHER_API_KEY=your-weather-api-key-here  # Optional, for weather tools
    ```
 
 3. **Configure frontend environment (optional):**
@@ -78,12 +83,6 @@ npm run dev:backend
 
 # Terminal 2 - Frontend
 npm run dev:frontend
-```
-
-Or run both with:
-
-```bash
-npm run dev
 ```
 
 ### Access the Application
@@ -118,14 +117,15 @@ npm run dev
 
 ### Backend
 
-| Variable            | Default                  | Description  |
-| ------------------- | ------------------------ | ------------ |
-| `PORT`              | 3001                     | Server port  |
-| `LLM_PROVIDER`      | anthropic                | LLM provider |
-| `MODEL_NAME`        | claude-3-5-sonnet-latest | Model name   |
-| `MODEL_TEMPERATURE` | 0.3                      | Temperature  |
-| `MODEL_MAX_TOKENS`  | 4096                     | Max tokens   |
-| `ANTHROPIC_API_KEY` | -                        | API key      |
+| Variable            | Default                  | Description              |
+| ------------------- | ------------------------ | ------------------------ |
+| `PORT`              | 3001                     | Server port              |
+| `LLM_PROVIDER`      | anthropic                | LLM provider             |
+| `MODEL_NAME`        | claude-3-5-sonnet-latest | Model name               |
+| `MODEL_TEMPERATURE` | 0.3                      | Temperature              |
+| `MODEL_MAX_TOKENS`  | 4096                     | Max tokens               |
+| `ANTHROPIC_API_KEY` | -                        | Anthropic API key        |
+| `WEATHER_API_KEY`   | -                        | Weather API key (optional) |
 
 ### Frontend
 
@@ -160,3 +160,30 @@ npm run dev
 2. Register in `backend/src/providers/factory.ts`
 
 3. Update config and environment variables as needed
+
+## Adding New Tools
+
+1. Define a tool using LangChain's `tool()` helper with Zod schema in `backend/src/tools/`:
+
+   ```typescript
+   import { tool } from '@langchain/core/tools';
+   import { z } from 'zod';
+
+   export const myTool = tool(
+     async ({ param }) => {
+       // Tool implementation
+       return 'result';
+     },
+     {
+       name: 'my_tool',
+       description: 'Description of what the tool does',
+       schema: z.object({
+         param: z.string().describe('Parameter description'),
+       }),
+     }
+   );
+   ```
+
+2. Export from `backend/src/tools/index.ts`
+
+3. Tools are automatically available to the LangChain agent

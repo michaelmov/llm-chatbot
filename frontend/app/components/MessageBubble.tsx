@@ -18,8 +18,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const parsedMessageContent = isUser ? message.content : parse(message.content);
 
-  console.log('parsedMessageContent', parsedMessageContent);
-
   return (
     <div
       className={cn('flex rounded-md', {

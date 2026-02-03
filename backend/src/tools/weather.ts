@@ -44,7 +44,7 @@ export const weatherTool = tool(
     const data = await response.json();
     const emoji = getConditionEmoji(data.current.condition.text);
     const content = `Current weather in ${data.location.name}, ${data.location.country}:
-- Temperature: ${data.current.temp_f}°F (${data.current.temp_c}°C)
+- Temperature: ${Math.round(data.current.temp_f)}°F (${Math.round(data.current.temp_c)}°C)
 - Condition: ${emoji} ${data.current.condition.text}
 - Humidity: ${data.current.humidity}%
 - Wind: ${data.current.wind_mph} mph ${data.current.wind_dir}`;
@@ -94,7 +94,7 @@ export const weatherForecastTool = tool(
         }) => {
           const emoji = getConditionEmoji(day.day.condition.text);
           return `📅 ${formatForecastDate(day.date)}
-   🌡️ High: ${day.day.maxtemp_f}°F (${day.day.maxtemp_c}°C) | Low: ${day.day.mintemp_f}°F (${day.day.mintemp_c}°C)
+   🌡️ High: ${Math.round(day.day.maxtemp_f)}°F (${Math.round(day.day.maxtemp_c)}°C) | Low: ${Math.round(day.day.mintemp_f)}°F (${Math.round(day.day.mintemp_c)}°C)
    ${emoji} ${day.day.condition.text}
    💧 Chance of rain: ${day.day.daily_chance_of_rain}%`;
         }

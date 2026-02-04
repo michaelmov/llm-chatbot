@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+**/node_modules/
 
 # Build outputs
 .next/
@@ -7,10 +8,16 @@ out/
 dist/
 build/
 
-# Environment files
+# Environment files (secrets - never include in image)
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.local
+
+# Git
+.git/
+.gitignore
 
 # IDE and editor
 .idea/
@@ -27,6 +34,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # TypeScript
 *.tsbuildinfo
@@ -34,9 +42,16 @@ yarn-error.log*
 # Testing
 coverage/
 
-# Misc
-*.log
-.vercel
+# Docker files (not needed in context)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
 
-# Docker
-docker-compose.override.yml.bak
+# Documentation
+*.md
+LICENSE
+
+# Misc
+.vercel
+.prettierrc
+.prettierignore

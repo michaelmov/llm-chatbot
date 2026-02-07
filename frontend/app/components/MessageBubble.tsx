@@ -2,7 +2,7 @@
 
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
-import { parse } from 'marked';
+import { LLMOutputDynamic } from './llm-output/LLMOutputDynamic';
 
 export interface Message {
   id: string;
@@ -12,11 +12,11 @@ export interface Message {
 
 interface MessageBubbleProps {
   message: Message;
+  isStreamFinished: boolean;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, isStreamFinished }: MessageBubbleProps) {
   const isUser = message.role === 'user';
-  const parsedMessageContent = isUser ? message.content : parse(message.content);
 
   return (
     <div
@@ -31,15 +31,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           'w-full border border-border bg-card text-card-foreground': !isUser,
         })}
       >
-        {!parsedMessageContent ? (
+        {isUser ? (
+          <p className="whitespace-pre-wrap wrap-break-word">{message.content}</p>
+        ) : !message.content ? (
           <div className="flex justify-center py-2">
             <Spinner />
           </div>
         ) : (
-          <p
-            className="whitespace-pre-wrap wrap-break-word"
-            dangerouslySetInnerHTML={{ __html: parsedMessageContent }}
-          />
+          <LLMOutputDynamic content={message.content} isStreamFinished={isStreamFinished} />
         )}
       </div>
     </div>

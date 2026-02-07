@@ -5,9 +5,11 @@ import { MessageBubble, type Message } from './MessageBubble';
 
 interface MessageListProps {
   messages: Message[];
+  isStreaming: boolean;
+  streamingMessageId: string | null;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, isStreaming, streamingMessageId }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,7 +26,18 @@ export function MessageList({ messages }: MessageListProps) {
             Send a message to start the conversation
           </div>
         ) : (
-          visibleMessages.map((message) => <MessageBubble key={message.id} message={message} />)
+          visibleMessages.map((message) => {
+            const isStreamFinished = !(
+              isStreaming && message.id === streamingMessageId
+            );
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isStreamFinished={isStreamFinished}
+              />
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>

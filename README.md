@@ -16,6 +16,7 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 
 - Node.js 20+
 - npm
+- Docker (for PostgreSQL database)
 - Anthropic API key
 - Weather API key (optional, from [weatherapi.com](https://www.weatherapi.com/))
 
@@ -29,6 +30,7 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 │   │   ├── index.ts      # Entry point
 │   │   ├── config.ts     # Configuration
 │   │   ├── server.ts     # Express + WebSocket setup
+│   │   ├── db/           # Database client & schema (Drizzle ORM)
 │   │   ├── providers/    # LLM provider implementations
 │   │   ├── tools/        # LangChain tools (weather, etc.)
 │   │   ├── websocket/    # WebSocket handling
@@ -63,7 +65,14 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
    WEATHER_API_KEY=your-weather-api-key-here  # Optional, for weather tools
    ```
 
-3. **Configure frontend environment (optional):**
+3. **Start the database:**
+
+   ```bash
+   npm run db:start
+   npm run db:migrate
+   ```
+
+4. **Configure frontend environment (optional):**
 
    ```bash
    cp frontend/.env.example frontend/.env.local
@@ -78,11 +87,23 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 Start both backend and frontend:
 
 ```bash
-# Terminal 1 - Backend
-npm run dev:backend
+# Start backend + frontend (database must be running)
+npm run dev
 
-# Terminal 2 - Frontend
-npm run dev:frontend
+# Or start everything including the database
+npm run dev:with-db
+```
+
+#### Database Commands
+
+```bash
+npm run db:start       # Start PostgreSQL container
+npm run db:stop        # Stop PostgreSQL container
+npm run db:reset       # Reset database (removes volumes)
+npm run db:generate    # Generate Drizzle migrations
+npm run db:migrate     # Run Drizzle migrations
+npm run db:push        # Push schema directly
+npm run db:studio      # Open Drizzle Studio
 ```
 
 ### Access the Application
@@ -126,6 +147,7 @@ npm run dev:frontend
 | `MODEL_MAX_TOKENS`  | 4096                     | Max tokens               |
 | `ANTHROPIC_API_KEY` | -                        | Anthropic API key        |
 | `WEATHER_API_KEY`   | -                        | Weather API key (optional) |
+| `DATABASE_URL`      | -                        | PostgreSQL connection URL  |
 
 ### Frontend
 

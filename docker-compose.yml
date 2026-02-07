@@ -1,4 +1,25 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: chatbot-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: chatbot
+      POSTGRES_PASSWORD: chatbot_dev
+      POSTGRES_DB: chatbot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U chatbot -d chatbot']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - chatbot-network
+
   backend:
     build:
       context: .
@@ -14,6 +35,10 @@ services:
       - MODEL_MAX_TOKENS=${MODEL_MAX_TOKENS:-4096}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - DATABASE_URL=postgresql://chatbot:chatbot_dev@postgres:5432/chatbot
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3001/health']
       interval: 30s
@@ -50,3 +75,7 @@ services:
 networks:
   chatbot-network:
     driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

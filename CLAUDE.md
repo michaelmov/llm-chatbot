@@ -17,6 +17,16 @@ npm run build          # Builds both workspaces
 
 # Lint
 npm run lint           # Lints both workspaces
+
+# Database
+npm run dev:with-db    # Start backend, frontend, and database
+npm run db:start       # Start PostgreSQL container
+npm run db:stop        # Stop PostgreSQL container
+npm run db:reset       # Reset database (removes volumes)
+npm run db:generate    # Generate Drizzle migrations
+npm run db:migrate     # Run Drizzle migrations
+npm run db:push        # Push schema directly
+npm run db:studio      # Open Drizzle Studio
 ```
 
 ## Architecture
@@ -44,6 +54,8 @@ Express server with WebSocket support for real-time LLM streaming using LangChai
 **Validation:** Messages validated in `websocket/validation.ts` with max payload size of 50,000 chars.
 
 **Health endpoint:** `GET /health` returns provider and model info.
+
+**Database:** PostgreSQL 17 with Drizzle ORM and postgres.js driver. Schema defines `conversations` and `messages` tables in `db/schema.ts`. Database client exported from `db/index.ts`. Migrations live in `backend/drizzle/`, config in `backend/drizzle.config.ts`.
 
 ### Frontend (`/frontend`)
 
@@ -85,6 +97,7 @@ MODEL_TEMPERATURE=0.3
 MODEL_MAX_TOKENS=4096
 ANTHROPIC_API_KEY=your-api-key-here
 WEATHER_API_KEY=your-weather-api-key-here  # From weatherapi.com
+DATABASE_URL=postgresql://chatbot:chatbot_dev@localhost:5432/chatbot
 ```
 
 ### Frontend (`frontend/.env.local`)

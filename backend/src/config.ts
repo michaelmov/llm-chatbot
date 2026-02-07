@@ -15,6 +15,9 @@ export const config = {
     apiKey: process.env.WEATHER_API_KEY || '',
     baseUrl: 'https://api.weatherapi.com/v1',
   },
+  database: {
+    url: process.env.DATABASE_URL || 'postgresql://chatbot:chatbot_dev@localhost:5432/chatbot',
+  },
   validation: {
     maxPayloadSize: 50000,
   },

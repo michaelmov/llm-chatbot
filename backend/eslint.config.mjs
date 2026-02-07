@@ -6,7 +6,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default defineConfig(
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: ['dist/**', 'node_modules/**', 'drizzle/**', 'drizzle.config.ts'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

@@ -8,14 +8,22 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev": "concurrently --names 'backend,frontend' --prefix-colors 'bgBlue,bgGreen' \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:with-db": "concurrently --names 'backend,frontend,db' --prefix-colors 'bgBlue,bgGreen,bgRed' \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:db:start\"",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:start": "docker compose -f docker-compose.dev.yml up -d",
+    "db:stop": "docker compose -f docker-compose.dev.yml down",
+    "db:reset": "docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d",
+    "db:generate": "npm run db:generate -w backend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:push": "npm run db:push -w backend",
+    "db:studio": "npm run db:studio -w backend"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

@@ -14,6 +14,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws';
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const currentRequestIdRef = useRef<string | null>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
 
@@ -30,6 +31,7 @@ export function ChatContainer() {
           setIsStreaming(true);
           const assistantId = uuidv4();
           streamingMessageIdRef.current = assistantId;
+          setStreamingMessageId(assistantId);
           setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
           break;
 
@@ -56,6 +58,7 @@ export function ChatContainer() {
           }
           currentRequestIdRef.current = null;
           streamingMessageIdRef.current = null;
+          setStreamingMessageId(null);
           break;
 
         case 'error':
@@ -71,12 +74,14 @@ export function ChatContainer() {
           }
           currentRequestIdRef.current = null;
           streamingMessageIdRef.current = null;
+          setStreamingMessageId(null);
           break;
 
         case 'canceled':
           setIsStreaming(false);
           currentRequestIdRef.current = null;
           streamingMessageIdRef.current = null;
+          setStreamingMessageId(null);
           break;
       }
     },
@@ -127,7 +132,11 @@ export function ChatContainer() {
       </div>
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto h-full max-w-2xl">
-          <MessageList messages={messages} />
+          <MessageList
+            messages={messages}
+            isStreaming={isStreaming}
+            streamingMessageId={streamingMessageId}
+          />
         </div>
       </div>
       <div className="mx-auto w-full max-w-2xl px-4 py-4">

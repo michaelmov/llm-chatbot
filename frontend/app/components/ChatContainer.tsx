@@ -1,49 +1,83 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { StatusIndicator } from './StatusIndicator';
-import { ModeToggle } from '@/components/mode-toggle';
-import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useSession, signOut } from '@/lib/auth-client';
+import { useConversation } from '../hooks/useConversation';
+import { useSession } from '@/lib/auth-client';
 import type { Message } from './MessageBubble';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws';
 
-export function ChatContainer() {
-  const router = useRouter();
+interface ChatContainerProps {
+  conversationId?: string;
+}
+
+export function ChatContainer({ conversationId }: ChatContainerProps) {
   const { data: sessionData } = useSession();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const queryClient = useQueryClient();
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const currentRequestIdRef = useRef<string | null>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
+  const activeConversationIdRef = useRef<string | undefined>(conversationId);
+
+  const sessionToken = sessionData?.session?.token;
+  const { data: conversationData } = useConversation(conversationId, sessionToken);
+
+  const loadedMessages = useMemo<Message[]>(() => {
+    if (!conversationData?.messages) return [];
+    return conversationData.messages.map((m) => ({
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
+  }, [conversationData]);
+
+  const messages = useMemo(
+    () => [...loadedMessages, ...localMessages],
+    [loadedMessages, localMessages]
+  );
 
   const handleMessage = useCallback(
     (message: {
       type: string;
+      conversationId?: string;
       token?: string;
       text?: string;
       error?: string;
       requestId?: string;
     }) => {
       switch (message.type) {
-        case 'start':
+        case 'start': {
           setIsStreaming(true);
           const assistantId = uuidv4();
           streamingMessageIdRef.current = assistantId;
           setStreamingMessageId(assistantId);
-          setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+          setLocalMessages((prev) => [
+            ...prev,
+            { id: assistantId, role: 'assistant', content: '' },
+          ]);
+
+          if (message.conversationId) {
+            activeConversationIdRef.current = message.conversationId;
+            if (!conversationId) {
+              window.history.replaceState(null, '', `/c/${message.conversationId}`);
+            }
+          }
           break;
+        }
 
         case 'token':
           if (streamingMessageIdRef.current && message.token) {
-            setMessages((prev) =>
+            setLocalMessages((prev) =>
               prev.map((m) =>
                 m.id === streamingMessageIdRef.current
                   ? { ...m, content: m.content + message.token }
@@ -56,7 +90,7 @@ export function ChatContainer() {
         case 'done':
           setIsStreaming(false);
           if (streamingMessageIdRef.current && message.text) {
-            setMessages((prev) =>
+            setLocalMessages((prev) =>
               prev.map((m) =>
                 m.id === streamingMessageIdRef.current ? { ...m, content: message.text! } : m
               )
@@ -65,12 +99,13 @@ export function ChatContainer() {
           currentRequestIdRef.current = null;
           streamingMessageIdRef.current = null;
           setStreamingMessageId(null);
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
           break;
 
         case 'error':
           setIsStreaming(false);
           if (streamingMessageIdRef.current) {
-            setMessages((prev) =>
+            setLocalMessages((prev) =>
               prev.map((m) =>
                 m.id === streamingMessageIdRef.current
                   ? { ...m, content: `Error: ${message.error}` }
@@ -91,10 +126,8 @@ export function ChatContainer() {
           break;
       }
     },
-    []
+    [conversationId, queryClient]
   );
-
-  const sessionToken = sessionData?.session?.token;
 
   const { connectionStatus, sendChat, sendCancel, isConnected } = useWebSocket({
     url: WS_URL,
@@ -102,26 +135,20 @@ export function ChatContainer() {
     onMessage: handleMessage,
   });
 
-  const handleSignOut = useCallback(async () => {
-    await signOut();
-    router.push('/sign-in');
-    router.refresh();
-  }, [router]);
-
   const handleSend = useCallback(
     (content: string) => {
       const userMessage: Message = { id: uuidv4(), role: 'user', content };
-      const newMessages = [...messages, userMessage];
-      setMessages(newMessages);
+      setLocalMessages((prev) => [...prev, userMessage]);
 
       const requestId = uuidv4();
       currentRequestIdRef.current = requestId;
 
-      const chatMessages = newMessages.map(({ role, content }) => ({
+      const allMessages = [...messages, userMessage];
+      const chatMessages = allMessages.map(({ role, content }) => ({
         role,
         content,
       }));
-      sendChat(requestId, chatMessages);
+      sendChat(requestId, chatMessages, activeConversationIdRef.current);
     },
     [messages, sendChat]
   );
@@ -136,15 +163,10 @@ export function ChatContainer() {
     <div className="flex h-full max-h-screen w-full flex-col bg-background">
       <div className="border-b border-border">
         <div className="mx-auto w-full max-w-2xl px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Chat</h1>
-            <div className="flex items-center gap-2">
-              <StatusIndicator connectionStatus={connectionStatus} isStreaming={isStreaming} />
-              <ModeToggle />
-              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1 block md:hidden" />
+            <Separator orientation="vertical" className="mr-2 h-4 block md:hidden" />
+            <StatusIndicator connectionStatus={connectionStatus} isStreaming={isStreaming} />
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ export default function SignInPage() {
       if (result.error) {
         setError(result.error.message || 'Invalid credentials');
       } else {
-        router.push('/');
+        router.push('/c');
         router.refresh();
       }
     } catch {

@@ -7,6 +7,7 @@ import type { Message } from '../components/MessageBubble';
 interface ServerMessage {
   type: 'ready' | 'start' | 'token' | 'done' | 'error' | 'canceled' | 'pong';
   requestId?: string;
+  conversationId?: string;
   token?: string;
   text?: string;
   error?: string;
@@ -90,8 +91,8 @@ export function useWebSocket({ url, sessionToken, onMessage }: UseWebSocketOptio
   }, []);
 
   const sendChat = useCallback(
-    (requestId: string, messages: Pick<Message, 'role' | 'content'>[]) => {
-      send({ type: 'chat', requestId, messages });
+    (requestId: string, messages: Pick<Message, 'role' | 'content'>[], conversationId?: string) => {
+      send({ type: 'chat', requestId, messages, ...(conversationId && { conversationId }) });
     },
     [send]
   );

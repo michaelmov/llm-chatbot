@@ -1,9 +1,5 @@
-import { ChatContainer } from './components/ChatContainer';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return (
-    <main className="flex h-screen flex-col">
-      <ChatContainer />
-    </main>
-  );
+  redirect('/c');
 }

@@ -36,6 +36,9 @@ COPY frontend/ ./frontend/
 ARG NEXT_PUBLIC_WS_URL=ws://localhost:3001/ws
 ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 
+ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 WORKDIR /app/frontend
 
 # Build Next.js

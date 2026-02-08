@@ -14,10 +14,11 @@ interface ServerMessage {
 
 interface UseWebSocketOptions {
   url: string;
+  sessionToken?: string;
   onMessage?: (message: ServerMessage) => void;
 }
 
-export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
+export function useWebSocket({ url, sessionToken, onMessage }: UseWebSocketOptions) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -26,9 +27,11 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (!sessionToken) return;
 
     setConnectionStatus('connecting');
-    const ws = new WebSocket(url);
+    const wsUrl = sessionToken ? `${url}?token=${encodeURIComponent(sessionToken)}` : url;
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       setConnectionStatus('connected');
@@ -63,7 +66,7 @@ export function useWebSocket({ url, onMessage }: UseWebSocketOptions) {
     };
 
     wsRef.current = ws;
-  }, [url, onMessage]);
+  }, [url, sessionToken, onMessage]);
 
   useEffect(() => {
     connectRef.current = connect;

@@ -20,10 +20,11 @@ export const highlighter = loadHighlighter(
       import('@shikijs/langs/java'),
       import('@shikijs/langs/yaml'),
       import('@shikijs/langs/markdown'),
+      import('@shikijs/langs/hcl'),
     ],
     themes: [import('@shikijs/themes/github-dark'), import('@shikijs/themes/github-light')],
     engine: createJavaScriptRegexEngine(),
-  }),
+  })
 );
 
 export const codeToHtmlDark: CodeToHtmlOptions = {

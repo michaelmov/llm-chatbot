@@ -1,6 +1,6 @@
 'use client';
 
-import { useCodeBlockToHtml } from '@llm-ui/code';
+import { useCodeBlockToHtml, parseCompleteMarkdownCodeBlock } from '@llm-ui/code';
 import { type LLMOutputComponent } from '@llm-ui/react';
 import { useTheme } from 'next-themes';
 import parseHtml from 'html-react-parser';
@@ -10,10 +10,17 @@ export const CodeBlock: LLMOutputComponent = ({ blockMatch }) => {
   const { resolvedTheme } = useTheme();
   const codeToHtmlOptions = resolvedTheme === 'dark' ? codeToHtmlDark : codeToHtmlLight;
 
+  // Check if the language from the code block is loaded in the highlighter
+  const { language } = parseCompleteMarkdownCodeBlock(blockMatch.output);
+  const loadedLangs = highlighter.getHighlighter()?.getLoadedLanguages() ?? [];
+  const isLanguageSupported = !language || loadedLangs.includes(language);
+
   const { html, code } = useCodeBlockToHtml({
     markdownCodeBlock: blockMatch.output,
     highlighter,
-    codeToHtmlOptions,
+    codeToHtmlOptions: isLanguageSupported
+      ? codeToHtmlOptions
+      : { ...codeToHtmlOptions, lang: 'plain' },
   });
 
   if (!html) {

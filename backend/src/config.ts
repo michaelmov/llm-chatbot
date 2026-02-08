@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   model: {
     name: process.env.MODEL_NAME || 'claude-3-5-sonnet-latest',
     temperature: parseFloat(process.env.MODEL_TEMPERATURE || '0.3'),

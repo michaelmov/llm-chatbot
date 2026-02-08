@@ -21,7 +21,9 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const res = await fetch('http://localhost:3001/api/auth/get-session', {
+    const backendUrl =
+      process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const res = await fetch(`${backendUrl}/api/auth/get-session`, {
       headers: {
         cookie: `better-auth.session_token=${sessionCookie.value}`,
       },

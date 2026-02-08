@@ -2,16 +2,22 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { StatusIndicator } from './StatusIndicator';
 import { ModeToggle } from '@/components/mode-toggle';
+import { Button } from '@/components/ui/button';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useSession, signOut } from '@/lib/auth-client';
 import type { Message } from './MessageBubble';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws';
 
 export function ChatContainer() {
+  const router = useRouter();
+  const { data: sessionData } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
@@ -88,10 +94,19 @@ export function ChatContainer() {
     []
   );
 
+  const sessionToken = sessionData?.session?.token;
+
   const { connectionStatus, sendChat, sendCancel, isConnected } = useWebSocket({
     url: WS_URL,
+    sessionToken,
     onMessage: handleMessage,
   });
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    router.push('/sign-in');
+    router.refresh();
+  }, [router]);
 
   const handleSend = useCallback(
     (content: string) => {
@@ -126,6 +141,9 @@ export function ChatContainer() {
             <div className="flex items-center gap-2">
               <StatusIndicator connectionStatus={connectionStatus} isStreaming={isStreaming} />
               <ModeToggle />
+              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>

@@ -18,6 +18,9 @@ export const config = {
   database: {
     url: process.env.DATABASE_URL || 'postgresql://chatbot:chatbot_dev@localhost:5432/chatbot',
   },
+  auth: {
+    secret: process.env.BETTER_AUTH_SECRET || '',
+  },
   validation: {
     maxPayloadSize: 50000,
   },

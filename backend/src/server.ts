@@ -1,13 +1,26 @@
 import express from 'express';
+import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import { toNodeHandler } from 'better-auth/node';
 import { config } from './config.js';
+import { auth } from './auth.js';
 import { WebSocketHandler } from './websocket/handler.js';
 import { logger } from './utils/logger.js';
 
 export function createApp() {
   const app = express();
   const server = createServer(app);
+
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    })
+  );
+
+  // Better Auth routes — must be mounted before express.json()
+  app.all('/api/auth/*', toNodeHandler(auth));
 
   app.use(express.json());
 
@@ -20,7 +33,45 @@ export function createApp() {
     });
   });
 
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', async (request, socket, head) => {
+    const url = new URL(request.url || '', `http://${request.headers.host}`);
+
+    if (url.pathname !== '/ws') {
+      socket.destroy();
+      return;
+    }
+
+    const token = url.searchParams.get('token');
+    if (!token) {
+      logger.warn('WebSocket upgrade rejected: no token');
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    try {
+      const session = await auth.api.getSession({
+        headers: new Headers({ authorization: `Bearer ${token}` }),
+      });
+
+      if (!session) {
+        logger.warn('WebSocket upgrade rejected: invalid session');
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } catch (error) {
+      logger.error('WebSocket auth error', { error });
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+    }
+  });
 
   wss.on('connection', (ws) => {
     new WebSocketHandler(ws);

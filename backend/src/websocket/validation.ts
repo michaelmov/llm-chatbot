@@ -4,6 +4,7 @@ import type { ChatMessage } from '../providers/types.js';
 export interface ChatRequest {
   type: 'chat';
   requestId: string;
+  conversationId?: string;
   messages: ChatMessage[];
 }
 
@@ -23,6 +24,8 @@ export interface ValidationResult {
   message?: ClientMessage;
   error?: string;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const validRoles = ['user', 'assistant', 'system'] as const;
 
@@ -68,6 +71,11 @@ export function validateMessage(data: string): ValidationResult {
       if (typeof msg.requestId !== 'string') {
         return { valid: false, error: 'Missing or invalid requestId' };
       }
+      if (msg.conversationId !== undefined) {
+        if (typeof msg.conversationId !== 'string' || !UUID_RE.test(msg.conversationId)) {
+          return { valid: false, error: 'Invalid conversationId format' };
+        }
+      }
       if (!Array.isArray(msg.messages)) {
         return { valid: false, error: 'Messages must be an array' };
       }
@@ -98,6 +106,7 @@ export function validateMessage(data: string): ValidationResult {
         message: {
           type: 'chat',
           requestId: msg.requestId,
+          conversationId: msg.conversationId as string | undefined,
           messages: msg.messages as ChatMessage[],
         },
       };

@@ -15,6 +15,13 @@
       "when": 1770522808681,
       "tag": "0001_amused_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770579166242,
+      "tag": "0002_volatile_moondragon",
+      "breakpoints": true
     }
   ]
 }

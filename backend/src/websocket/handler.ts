@@ -3,11 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { createProvider } from '../providers/factory.js';
 import { logger } from '../utils/logger.js';
 import { validateMessage, type ClientMessage } from './validation.js';
-import type { LLMProvider } from '../providers/types.js';
+import type { LLMProvider, ChatMessage } from '../providers/types.js';
+import { conversationService, messageService } from '../services/index.js';
 
 interface ServerMessage {
   type: 'ready' | 'start' | 'token' | 'done' | 'error' | 'canceled' | 'pong';
   requestId?: string;
+  conversationId?: string;
   token?: string;
   text?: string;
   error?: string;
@@ -23,7 +25,10 @@ export class WebSocketHandler {
   private activeRequests: Map<string, ActiveRequest> = new Map();
   private connectionId: string;
 
-  constructor(private ws: WebSocket) {
+  constructor(
+    private ws: WebSocket,
+    private userId: string
+  ) {
     this.connectionId = uuidv4().slice(0, 8);
     this.provider = createProvider();
     this.setupListeners();
@@ -72,7 +77,7 @@ export class WebSocketHandler {
         this.handleCancel(message.requestId);
         break;
       case 'chat':
-        this.handleChat(message.requestId, message.messages);
+        this.handleChat(message.requestId, message.messages, message.conversationId);
         break;
     }
   }
@@ -92,45 +97,131 @@ export class WebSocketHandler {
 
   private async handleChat(
     requestId: string,
-    messages: { role: 'user' | 'assistant' | 'system'; content: string }[]
+    messages: ChatMessage[],
+    conversationId?: string
   ): Promise<void> {
     const abortController = new AbortController();
     this.activeRequests.set(requestId, { abortController, requestId });
 
-    logger.info('Starting chat request', {
-      connectionId: this.connectionId,
-      requestId,
-      messageCount: messages.length,
-    });
+    try {
+      let resolvedConversationId: string;
+      let llmMessages: ChatMessage[];
 
-    this.send({ type: 'start', requestId });
+      if (conversationId) {
+        // Existing conversation — verify ownership and load history from DB
+        const conversation = await conversationService.getById(conversationId, this.userId);
+        if (!conversation) {
+          this.activeRequests.delete(requestId);
+          this.send({ type: 'error', requestId, error: 'Conversation not found' });
+          return;
+        }
+        resolvedConversationId = conversationId;
 
-    await this.provider.stream(
-      messages,
-      {
-        onToken: (token) => {
-          this.send({ type: 'token', requestId, token });
-        },
-        onComplete: (text) => {
+        // Extract latest user message from client payload
+        const latestUserMessage = messages[messages.length - 1];
+        if (!latestUserMessage || latestUserMessage.role !== 'user') {
           this.activeRequests.delete(requestId);
-          this.send({ type: 'done', requestId, text });
-          logger.info('Chat request completed', {
-            connectionId: this.connectionId,
-            requestId,
-          });
-        },
-        onError: (error) => {
+          this.send({ type: 'error', requestId, error: 'Last message must be a user message' });
+          return;
+        }
+
+        // Persist user message
+        await messageService.create({
+          conversationId: resolvedConversationId,
+          role: 'user',
+          content: latestUserMessage.content,
+        });
+
+        // Load full history from DB (now includes the just-persisted user message)
+        const dbMessages = await messageService.getByConversationId(resolvedConversationId);
+        llmMessages = dbMessages.map((m) => ({ role: m.role, content: m.content }));
+      } else {
+        // New conversation — auto-create
+        const conversation = await conversationService.create(this.userId);
+        resolvedConversationId = conversation.id;
+
+        // Extract latest user message
+        const latestUserMessage = messages[messages.length - 1];
+        if (!latestUserMessage || latestUserMessage.role !== 'user') {
           this.activeRequests.delete(requestId);
-          logger.error('Chat request failed', {
-            connectionId: this.connectionId,
-            requestId,
-            error: error.message,
-          });
-          this.send({ type: 'error', requestId, error: error.message });
+          this.send({ type: 'error', requestId, error: 'Last message must be a user message' });
+          return;
+        }
+
+        // Persist user message
+        await messageService.create({
+          conversationId: resolvedConversationId,
+          role: 'user',
+          content: latestUserMessage.content,
+        });
+
+        // For new conversations, use the client's messages (allows system prompt etc.)
+        llmMessages = messages;
+      }
+
+      logger.info('Starting chat request', {
+        connectionId: this.connectionId,
+        requestId,
+        conversationId: resolvedConversationId,
+        messageCount: llmMessages.length,
+      });
+
+      this.send({ type: 'start', requestId, conversationId: resolvedConversationId });
+
+      await this.provider.stream(
+        llmMessages,
+        {
+          onToken: (token) => {
+            this.send({ type: 'token', requestId, token });
+          },
+          onComplete: async (text) => {
+            this.activeRequests.delete(requestId);
+            this.send({ type: 'done', requestId, text, conversationId: resolvedConversationId });
+            logger.info('Chat request completed', {
+              connectionId: this.connectionId,
+              requestId,
+              conversationId: resolvedConversationId,
+            });
+
+            // Persist assistant message (non-fatal)
+            try {
+              await messageService.create({
+                conversationId: resolvedConversationId,
+                role: 'assistant',
+                content: text,
+              });
+              await conversationService.touch(resolvedConversationId);
+            } catch (error) {
+              logger.error('Failed to persist assistant message', {
+                connectionId: this.connectionId,
+                requestId,
+                conversationId: resolvedConversationId,
+                error: error instanceof Error ? error.message : error,
+              });
+            }
+          },
+          onError: (error) => {
+            this.activeRequests.delete(requestId);
+            logger.error('Chat request failed', {
+              connectionId: this.connectionId,
+              requestId,
+              error: error.message,
+            });
+            this.send({ type: 'error', requestId, error: error.message });
+          },
         },
-      },
-      abortController.signal
-    );
+        abortController.signal
+      );
+    } catch (error) {
+      this.activeRequests.delete(requestId);
+      const message = error instanceof Error ? error.message : 'Internal error';
+      logger.error('Chat setup failed', {
+        connectionId: this.connectionId,
+        requestId,
+        error: message,
+      });
+      this.send({ type: 'error', requestId, error: message });
+    }
   }
 
   private handleClose(): void {

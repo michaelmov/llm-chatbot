@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, type WebSocket } from 'ws';
 import { toNodeHandler } from 'better-auth/node';
 import { config } from './config.js';
 import { auth } from './auth.js';
 import { WebSocketHandler } from './websocket/handler.js';
+import { conversationsRouter } from './routes/conversations.js';
 import { logger } from './utils/logger.js';
+
+const wsUserMap = new WeakMap<WebSocket, string>();
 
 export function createApp() {
   const app = express();
@@ -23,6 +26,8 @@ export function createApp() {
   app.all('/api/auth/*', toNodeHandler(auth));
 
   app.use(express.json());
+
+  app.use('/api/conversations', conversationsRouter);
 
   app.get('/health', (_, res) => {
     res.json({
@@ -64,6 +69,7 @@ export function createApp() {
       }
 
       wss.handleUpgrade(request, socket, head, (ws) => {
+        wsUserMap.set(ws, session.user.id);
         wss.emit('connection', ws, request);
       });
     } catch (error) {
@@ -74,7 +80,8 @@ export function createApp() {
   });
 
   wss.on('connection', (ws) => {
-    new WebSocketHandler(ws);
+    const userId = wsUserMap.get(ws)!;
+    new WebSocketHandler(ws, userId);
   });
 
   return { app, server, wss };

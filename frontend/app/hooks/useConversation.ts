@@ -20,5 +20,6 @@ export function useConversation(conversationId: string | undefined, token?: stri
     queryKey: ['conversations', conversationId],
     queryFn: () => apiFetch<ConversationResponse>(`/api/conversations/${conversationId}`, token!),
     enabled: !!token && !!conversationId,
+    refetchOnMount: 'always',
   });
 }

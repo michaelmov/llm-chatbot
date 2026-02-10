@@ -226,10 +226,9 @@ export class WebSocketHandler {
 
   private handleClose(): void {
     logger.info('WebSocket disconnected', { connectionId: this.connectionId });
-    for (const [, request] of this.activeRequests) {
-      request.abortController.abort();
-    }
-    this.activeRequests.clear();
+    // Don't abort active requests — let LLM streams complete and persist.
+    // The send() method already no-ops on closed connections,
+    // and onComplete will persist the message to the DB regardless.
   }
 
   private handleError(error: Error): void {

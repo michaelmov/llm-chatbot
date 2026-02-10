@@ -71,6 +71,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             if (!conversationId) {
               window.history.replaceState(null, '', `/c/${message.conversationId}`);
             }
+            queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
           }
           break;
         }
@@ -99,7 +100,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
           currentRequestIdRef.current = null;
           streamingMessageIdRef.current = null;
           setStreamingMessageId(null);
-          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
           break;
 
         case 'error':

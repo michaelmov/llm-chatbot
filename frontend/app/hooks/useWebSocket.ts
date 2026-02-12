@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import type { ConnectionStatus } from '../components/StatusIndicator';
 import type { Message } from '../components/MessageBubble';
 
@@ -26,12 +27,25 @@ export function useWebSocket({ url, sessionToken, onMessage }: UseWebSocketOptio
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const connectRef = useRef<(() => void) | null>(null);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
     if (!sessionToken) return;
 
     setConnectionStatus('connecting');
-    const wsUrl = sessionToken ? `${url}?token=${encodeURIComponent(sessionToken)}` : url;
+
+    let ticket: string;
+    try {
+      const res = await apiFetch<{ ticket: string }>('/api/ws/ticket', sessionToken, {
+        method: 'POST',
+      });
+      ticket = res.ticket;
+    } catch {
+      setConnectionStatus('disconnected');
+      // 401 means session expired — don't reconnect
+      return;
+    }
+
+    const wsUrl = `${url}?ticket=${encodeURIComponent(ticket)}`;
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

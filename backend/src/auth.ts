@@ -5,6 +5,7 @@ import { db } from './db/index.js';
 import { config } from './config.js';
 
 export const auth = betterAuth({
+  baseURL: config.backendUrl,
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
@@ -14,4 +15,15 @@ export const auth = betterAuth({
   },
   trustedOrigins: [config.frontendUrl],
   plugins: [bearer()],
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: !!config.cookieDomain,
+      domain: config.cookieDomain,
+    },
+    defaultCookieAttributes: {
+      secure: true,
+      httpOnly: true,
+      sameSite: 'lax' as const,
+    },
+  },
 });

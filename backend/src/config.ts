@@ -22,6 +22,8 @@ export const config = {
   auth: {
     secret: process.env.BETTER_AUTH_SECRET || '',
   },
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
+  cookieDomain: process.env.COOKIE_DOMAIN || undefined,
   validation: {
     maxPayloadSize: 50000,
   },

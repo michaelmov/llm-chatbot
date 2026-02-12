@@ -45,7 +45,7 @@ export function createApp() {
 
   const wss = new WebSocketServer({ noServer: true });
 
-  server.on('upgrade', async (request, socket, head) => {
+  server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url || '', `http://${request.headers.host}`);
 
     if (url.pathname !== '/ws') {
@@ -53,51 +53,20 @@ export function createApp() {
       return;
     }
 
-    // Prefer ticket-based auth; fall back to token during migration
     const ticket = url.searchParams.get('ticket');
-    const token = url.searchParams.get('token');
+    const userId = ticket ? ticketService.validate(ticket) : null;
 
-    if (ticket) {
-      const userId = ticketService.validate(ticket);
-      if (!userId) {
-        logger.warn('WebSocket upgrade rejected: invalid or expired ticket');
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        socket.destroy();
-        return;
-      }
-
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wsUserMap.set(ws, userId);
-        wss.emit('connection', ws, request);
-      });
-    } else if (token) {
-      // Legacy token-based auth — remove after frontend deploys ticket support
-      try {
-        const session = await auth.api.getSession({
-          headers: new Headers({ authorization: `Bearer ${token}` }),
-        });
-
-        if (!session) {
-          logger.warn('WebSocket upgrade rejected: invalid session');
-          socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-          socket.destroy();
-          return;
-        }
-
-        wss.handleUpgrade(request, socket, head, (ws) => {
-          wsUserMap.set(ws, session.user.id);
-          wss.emit('connection', ws, request);
-        });
-      } catch (error) {
-        logger.error('WebSocket auth error', { error });
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        socket.destroy();
-      }
-    } else {
-      logger.warn('WebSocket upgrade rejected: no ticket or token');
+    if (!userId) {
+      logger.warn('WebSocket upgrade rejected: missing or invalid ticket');
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
       socket.destroy();
+      return;
     }
+
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wsUserMap.set(ws, userId);
+      wss.emit('connection', ws, request);
+    });
   });
 
   wss.on('connection', (ws) => {

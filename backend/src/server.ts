@@ -9,6 +9,7 @@ import { WebSocketHandler } from './websocket/handler.js';
 import { conversationsRouter } from './routes/conversations.js';
 import { wsTicketRouter } from './routes/ws-ticket.js';
 import { ticketService } from './services/ticket-service.js';
+import { connectRedis } from './redis.js';
 import { logger } from './utils/logger.js';
 
 const wsUserMap = new WeakMap<WebSocket, string>();
@@ -45,28 +46,34 @@ export function createApp() {
 
   const wss = new WebSocketServer({ noServer: true });
 
-  server.on('upgrade', (request, socket, head) => {
-    const url = new URL(request.url || '', `http://${request.headers.host}`);
+  server.on('upgrade', async (request, socket, head) => {
+    try {
+      const url = new URL(request.url || '', `http://${request.headers.host}`);
 
-    if (url.pathname !== '/ws') {
+      if (url.pathname !== '/ws') {
+        socket.destroy();
+        return;
+      }
+
+      const ticket = url.searchParams.get('ticket');
+      const userId = ticket ? await ticketService.validate(ticket) : null;
+
+      if (!userId) {
+        logger.warn('WebSocket upgrade rejected: missing or invalid ticket');
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wsUserMap.set(ws, userId);
+        wss.emit('connection', ws, request);
+      });
+    } catch (err) {
+      logger.error('WebSocket upgrade error', { error: String(err) });
+      socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
       socket.destroy();
-      return;
     }
-
-    const ticket = url.searchParams.get('ticket');
-    const userId = ticket ? ticketService.validate(ticket) : null;
-
-    if (!userId) {
-      logger.warn('WebSocket upgrade rejected: missing or invalid ticket');
-      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wsUserMap.set(ws, userId);
-      wss.emit('connection', ws, request);
-    });
   });
 
   wss.on('connection', (ws) => {
@@ -74,12 +81,11 @@ export function createApp() {
     new WebSocketHandler(ws, userId);
   });
 
-  ticketService.startCleanup();
-
   return { app, server, wss };
 }
 
-export function startServer() {
+export async function startServer() {
+  await connectRedis();
   const { server } = createApp();
 
   server.listen(config.port, () => {

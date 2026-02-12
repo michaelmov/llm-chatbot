@@ -1,50 +1,19 @@
 import { randomUUID } from 'crypto';
+import { redis } from '../redis.js';
 
-interface TicketEntry {
-  userId: string;
-  createdAt: number;
-}
-
-const TICKET_TTL_MS = 30_000;
-const CLEANUP_INTERVAL_MS = 10_000;
+const TICKET_TTL_SECONDS = 30;
+const TICKET_PREFIX = 'ws-ticket:';
 
 class TicketService {
-  private tickets = new Map<string, TicketEntry>();
-  private cleanupTimer: NodeJS.Timeout | null = null;
-
-  create(userId: string): string {
+  async create(userId: string): Promise<string> {
     const ticket = randomUUID();
-    this.tickets.set(ticket, { userId, createdAt: Date.now() });
+    await redis.set(`${TICKET_PREFIX}${ticket}`, userId, 'EX', TICKET_TTL_SECONDS);
     return ticket;
   }
 
-  validate(ticket: string): string | null {
-    const entry = this.tickets.get(ticket);
-    if (!entry) return null;
-
-    this.tickets.delete(ticket);
-
-    if (Date.now() - entry.createdAt > TICKET_TTL_MS) return null;
-
-    return entry.userId;
-  }
-
-  startCleanup(): void {
-    this.cleanupTimer = setInterval(() => {
-      const now = Date.now();
-      for (const [ticket, entry] of this.tickets) {
-        if (now - entry.createdAt > TICKET_TTL_MS) {
-          this.tickets.delete(ticket);
-        }
-      }
-    }, CLEANUP_INTERVAL_MS);
-  }
-
-  stopCleanup(): void {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-      this.cleanupTimer = null;
-    }
+  async validate(ticket: string): Promise<string | null> {
+    const userId = await redis.getdel(`${TICKET_PREFIX}${ticket}`);
+    return userId;
   }
 }
 

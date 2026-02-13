@@ -11,5 +11,6 @@ export async function apiFetch<T>(path: string, token: string, init?: RequestIni
     },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (res.status === 204) return undefined as T;
   return res.json();
 }

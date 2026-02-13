@@ -42,6 +42,14 @@ export const conversationService = {
       .orderBy(desc(conversations.updatedAt));
   },
 
+  async delete(conversationId: string, userId: string) {
+    const deleted = await db
+      .delete(conversations)
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
+      .returning();
+    return deleted.length > 0;
+  },
+
   async touch(conversationId: string) {
     await db
       .update(conversations)

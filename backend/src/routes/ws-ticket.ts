@@ -4,8 +4,8 @@ import { ticketService } from '../services/ticket-service.js';
 
 const router = Router();
 
-router.post('/ticket', requireAuth, (req, res) => {
-  const ticket = ticketService.create(req.userId);
+router.post('/ticket', requireAuth, async (req, res) => {
+  const ticket = await ticketService.create(req.userId);
   res.json({ ticket });
 });
 

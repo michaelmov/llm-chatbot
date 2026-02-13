@@ -26,10 +26,16 @@ export function useWebSocket({ url, sessionToken, onMessage }: UseWebSocketOptio
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const connectRef = useRef<(() => void) | null>(null);
+  const connectAbortRef = useRef<AbortController | null>(null);
 
   const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
     if (!sessionToken) return;
+
+    // Abort any previous in-flight connect attempt
+    connectAbortRef.current?.abort();
+    const abortController = new AbortController();
+    connectAbortRef.current = abortController;
 
     setConnectionStatus('connecting');
 
@@ -37,13 +43,18 @@ export function useWebSocket({ url, sessionToken, onMessage }: UseWebSocketOptio
     try {
       const res = await apiFetch<{ ticket: string }>('/api/ws/ticket', sessionToken, {
         method: 'POST',
+        signal: abortController.signal,
       });
       ticket = res.ticket;
     } catch {
-      setConnectionStatus('disconnected');
-      // 401 means session expired — don't reconnect
+      if (!abortController.signal.aborted) {
+        setConnectionStatus('disconnected');
+      }
       return;
     }
+
+    // Check if aborted while awaiting
+    if (abortController.signal.aborted) return;
 
     const wsUrl = `${url}?ticket=${encodeURIComponent(ticket)}`;
     const ws = new WebSocket(wsUrl);
@@ -88,6 +99,7 @@ export function useWebSocket({ url, sessionToken, onMessage }: UseWebSocketOptio
   }, [connect]);
 
   const disconnect = useCallback(() => {
+    connectAbortRef.current?.abort();
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }

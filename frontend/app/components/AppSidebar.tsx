@@ -31,6 +31,7 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { useConversations } from '../hooks/useConversations';
+import { cn } from '@/lib/utils';
 
 export function AppSidebar() {
   const router = useRouter();
@@ -89,6 +90,7 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
               <SidebarMenuAction
+                className={cn('cursor-pointer')}
                 title="Delete Conversation"
                 onClick={() => setPendingDeleteId(conversation.id)}
                 showOnHover

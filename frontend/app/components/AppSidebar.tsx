@@ -91,6 +91,7 @@ export function AppSidebar() {
               <SidebarMenuAction
                 title="Delete Conversation"
                 onClick={() => setPendingDeleteId(conversation.id)}
+                showOnHover
               >
                 <Trash className="h-5 w-5" />
               </SidebarMenuAction>

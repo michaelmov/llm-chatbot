@@ -24,7 +24,6 @@ ECR_FRONTEND=$(terraform output -raw ecr_frontend_url)
 CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
 BACKEND_SERVICE=$(terraform output -raw backend_service_name)
 FRONTEND_SERVICE=$(terraform output -raw frontend_service_name)
-REDIS_SERVICE=$(terraform output -raw redis_service_name)
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 echo "  ALB DNS:      $ALB_DNS"
@@ -54,7 +53,6 @@ docker build \
   --platform linux/amd64 \
   -t "$ECR_FRONTEND:latest" \
   -f frontend/Dockerfile \
-  --build-arg "NEXT_PUBLIC_WS_URL=ws://$ALB_DNS/ws" \
   --build-arg "NEXT_PUBLIC_API_URL=http://$ALB_DNS" \
   .
 
@@ -64,13 +62,6 @@ docker push "$ECR_FRONTEND:latest"
 # Update ECS services to desired_count=1 and force new deployment
 echo ""
 echo "==> Starting ECS services..."
-aws ecs update-service \
-  --cluster "$CLUSTER_NAME" \
-  --service "$REDIS_SERVICE" \
-  --desired-count 1 \
-  --region "$AWS_REGION" \
-  --no-cli-pager > /dev/null
-
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
   --service "$BACKEND_SERVICE" \

@@ -30,7 +30,6 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "MODEL_TEMPERATURE", value = var.model_temperature },
         { name = "MODEL_MAX_TOKENS", value = var.model_max_tokens },
         { name = "DATABASE_URL", value = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}" },
-        { name = "REDIS_URL", value = "redis://redis.${var.project_name}.local:6379" },
         { name = "BACKEND_URL", value = "http://${aws_lb.main.dns_name}" },
         { name = "FRONTEND_URL", value = "http://${aws_lb.main.dns_name}" },
         { name = "COOKIE_SECURE", value = "false" },

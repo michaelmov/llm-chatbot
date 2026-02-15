@@ -42,8 +42,3 @@ output "frontend_service_name" {
   description = "Frontend ECS service name"
   value       = aws_ecs_service.frontend.name
 }
-
-output "redis_service_name" {
-  description = "Redis ECS service name"
-  value       = aws_ecs_service.redis.name
-}

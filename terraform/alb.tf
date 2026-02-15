@@ -7,7 +7,7 @@ resource "aws_lb" "main" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
 
-  idle_timeout = 120 # Exceeds WebSocket 30s ping interval
+  idle_timeout = 60
 
   tags = {
     Name = "${var.project_name}-alb"
@@ -89,23 +89,6 @@ resource "aws_lb_listener_rule" "api" {
   condition {
     path_pattern {
       values = ["/api/*"]
-    }
-  }
-}
-
-# /ws → backend (ALB natively supports WebSocket upgrade)
-resource "aws_lb_listener_rule" "websocket" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 110
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/ws"]
     }
   }
 }

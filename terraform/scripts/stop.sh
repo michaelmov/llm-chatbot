@@ -19,7 +19,6 @@ AWS_REGION=$(aws configure get region 2>/dev/null || echo "us-east-1")
 CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
 BACKEND_SERVICE=$(terraform output -raw backend_service_name)
 FRONTEND_SERVICE=$(terraform output -raw frontend_service_name)
-REDIS_SERVICE=$(terraform output -raw redis_service_name)
 
 echo "  Cluster: $CLUSTER_NAME"
 echo ""
@@ -36,14 +35,6 @@ echo "==> Scaling backend to 0..."
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
   --service "$BACKEND_SERVICE" \
-  --desired-count 0 \
-  --region "$AWS_REGION" \
-  --no-cli-pager > /dev/null
-
-echo "==> Scaling Redis to 0..."
-aws ecs update-service \
-  --cluster "$CLUSTER_NAME" \
-  --service "$REDIS_SERVICE" \
   --desired-count 0 \
   --region "$AWS_REGION" \
   --no-cli-pager > /dev/null

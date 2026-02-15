@@ -114,18 +114,6 @@ variable "frontend_memory" {
   default     = 512
 }
 
-variable "redis_cpu" {
-  description = "CPU units for Redis task (256 = 0.25 vCPU)"
-  type        = number
-  default     = 256
-}
-
-variable "redis_memory" {
-  description = "Memory in MiB for Redis task"
-  type        = number
-  default     = 512
-}
-
 # --- Model ---
 
 variable "model_name" {

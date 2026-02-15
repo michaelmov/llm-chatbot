@@ -31,11 +31,6 @@ COPY --from=deps /app/backend/package.json ./backend/
 # Copy frontend source code (includes package.json)
 COPY frontend/ ./frontend/
 
-# Build-time environment variable for WebSocket URL
-# This gets baked into the client bundle
-ARG NEXT_PUBLIC_WS_URL=ws://localhost:3001/ws
-ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
-
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 

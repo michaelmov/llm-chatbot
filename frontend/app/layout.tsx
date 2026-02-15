@@ -5,7 +5,7 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'LLM Chatbot',
-  description: 'Model-agnostic chatbot with WebSocket streaming',
+  description: 'Model-agnostic chatbot with LLM streaming',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

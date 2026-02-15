@@ -5,15 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { StatusIndicator } from './StatusIndicator';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useChat } from '../hooks/useChat';
 import { useConversation } from '../hooks/useConversation';
 import { useSession } from '@/lib/auth-client';
 import type { Message } from './MessageBubble';
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws';
 
 interface ChatContainerProps {
   conversationId?: string;
@@ -23,7 +18,6 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   const { data: sessionData } = useSession();
   const queryClient = useQueryClient();
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const currentRequestIdRef = useRef<string | null>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
@@ -46,94 +40,70 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     [loadedMessages, localMessages]
   );
 
-  const handleMessage = useCallback(
-    (message: {
-      type: string;
-      conversationId?: string;
-      token?: string;
-      text?: string;
-      error?: string;
-      requestId?: string;
-    }) => {
-      switch (message.type) {
-        case 'start': {
-          setIsStreaming(true);
-          const assistantId = uuidv4();
-          streamingMessageIdRef.current = assistantId;
-          setStreamingMessageId(assistantId);
-          setLocalMessages((prev) => [
-            ...prev,
-            { id: assistantId, role: 'assistant', content: '' },
-          ]);
+  const handleStart = useCallback(
+    (data: { requestId: string; conversationId: string }) => {
+      const assistantId = uuidv4();
+      streamingMessageIdRef.current = assistantId;
+      setStreamingMessageId(assistantId);
+      setLocalMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
 
-          if (message.conversationId) {
-            activeConversationIdRef.current = message.conversationId;
-            if (!conversationId) {
-              window.history.replaceState(null, '', `/c/${message.conversationId}`);
-            }
-            queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
-          }
-          break;
+      if (data.conversationId) {
+        activeConversationIdRef.current = data.conversationId;
+        if (!conversationId) {
+          window.history.replaceState(null, '', `/c/${data.conversationId}`);
         }
-
-        case 'token':
-          if (streamingMessageIdRef.current && message.token) {
-            setLocalMessages((prev) =>
-              prev.map((m) =>
-                m.id === streamingMessageIdRef.current
-                  ? { ...m, content: m.content + message.token }
-                  : m
-              )
-            );
-          }
-          break;
-
-        case 'done':
-          setIsStreaming(false);
-          if (streamingMessageIdRef.current && message.text) {
-            setLocalMessages((prev) =>
-              prev.map((m) =>
-                m.id === streamingMessageIdRef.current ? { ...m, content: message.text! } : m
-              )
-            );
-          }
-          currentRequestIdRef.current = null;
-          streamingMessageIdRef.current = null;
-          setStreamingMessageId(null);
-          queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
-          break;
-
-        case 'error':
-          setIsStreaming(false);
-          if (streamingMessageIdRef.current) {
-            setLocalMessages((prev) =>
-              prev.map((m) =>
-                m.id === streamingMessageIdRef.current
-                  ? { ...m, content: `Error: ${message.error}` }
-                  : m
-              )
-            );
-          }
-          currentRequestIdRef.current = null;
-          streamingMessageIdRef.current = null;
-          setStreamingMessageId(null);
-          break;
-
-        case 'canceled':
-          setIsStreaming(false);
-          currentRequestIdRef.current = null;
-          streamingMessageIdRef.current = null;
-          setStreamingMessageId(null);
-          break;
+        queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
       }
     },
     [conversationId, queryClient]
   );
 
-  const { connectionStatus, sendChat, sendCancel, isConnected } = useWebSocket({
-    url: WS_URL,
+  const handleToken = useCallback((data: { token: string }) => {
+    if (streamingMessageIdRef.current && data.token) {
+      setLocalMessages((prev) =>
+        prev.map((m) =>
+          m.id === streamingMessageIdRef.current ? { ...m, content: m.content + data.token } : m
+        )
+      );
+    }
+  }, []);
+
+  const handleDone = useCallback(
+    (data: { text: string }) => {
+      if (streamingMessageIdRef.current && data.text) {
+        setLocalMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamingMessageIdRef.current ? { ...m, content: data.text } : m
+          )
+        );
+      }
+      currentRequestIdRef.current = null;
+      streamingMessageIdRef.current = null;
+      setStreamingMessageId(null);
+      queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
+    },
+    [queryClient]
+  );
+
+  const handleError = useCallback((data: { error: string }) => {
+    if (streamingMessageIdRef.current) {
+      setLocalMessages((prev) =>
+        prev.map((m) =>
+          m.id === streamingMessageIdRef.current ? { ...m, content: `Error: ${data.error}` } : m
+        )
+      );
+    }
+    currentRequestIdRef.current = null;
+    streamingMessageIdRef.current = null;
+    setStreamingMessageId(null);
+  }, []);
+
+  const { sendChat, cancelStream, isStreaming } = useChat({
     sessionToken,
-    onMessage: handleMessage,
+    onStart: handleStart,
+    onToken: handleToken,
+    onDone: handleDone,
+    onError: handleError,
   });
 
   const handleSend = useCallback(
@@ -155,20 +125,16 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   );
 
   const handleStop = useCallback(() => {
-    if (currentRequestIdRef.current) {
-      sendCancel(currentRequestIdRef.current);
-    }
-  }, [sendCancel]);
+    cancelStream();
+  }, [cancelStream]);
 
   return (
     <div className="flex h-full max-h-screen w-full flex-col bg-background">
       <div className="border-b border-border">
-        <div className="mx-auto w-full max-w-2xl px-4 py-3">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1 block md:hidden" />
-            <Separator orientation="vertical" className="mr-2 h-4 block md:hidden" />
-            <StatusIndicator connectionStatus={connectionStatus} isStreaming={isStreaming} />
-          </div>
+        <div className="mx-auto w-full max-w-2xl px-4 py-4">
+          <h1 className="text-lg font-bold text-center">
+            {conversationData?.conversation.title ?? 'New Conversation'}
+          </h1>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -187,7 +153,6 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
           isLoading={isStreaming}
           placeholder="Message..."
           tools={[]}
-          disabled={!isConnected}
         />
       </div>
     </div>

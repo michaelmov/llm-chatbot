@@ -24,9 +24,6 @@ export const config = {
   },
   backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
   cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-  redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-  },
   validation: {
     maxPayloadSize: 50000,
   },

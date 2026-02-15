@@ -17,7 +17,6 @@ PROJECT_ROOT="$(cd "$TERRAFORM_DIR/.." && pwd)"
 cd "$TERRAFORM_DIR"
 
 echo "==> Reading Terraform outputs..."
-AWS_REGION=$(terraform output -raw alb_dns_name_raw 2>/dev/null && aws configure get region || echo "us-east-1")
 AWS_REGION=$(aws configure get region 2>/dev/null || echo "us-east-1")
 ALB_DNS=$(terraform output -raw alb_dns_name_raw)
 ECR_BACKEND=$(terraform output -raw ecr_backend_url)
@@ -25,6 +24,7 @@ ECR_FRONTEND=$(terraform output -raw ecr_frontend_url)
 CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
 BACKEND_SERVICE=$(terraform output -raw backend_service_name)
 FRONTEND_SERVICE=$(terraform output -raw frontend_service_name)
+REDIS_SERVICE=$(terraform output -raw redis_service_name)
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 echo "  ALB DNS:      $ALB_DNS"
@@ -66,6 +66,13 @@ echo ""
 echo "==> Starting ECS services..."
 aws ecs update-service \
   --cluster "$CLUSTER_NAME" \
+  --service "$REDIS_SERVICE" \
+  --desired-count 1 \
+  --region "$AWS_REGION" \
+  --no-cli-pager > /dev/null
+
+aws ecs update-service \
+  --cluster "$CLUSTER_NAME" \
   --service "$BACKEND_SERVICE" \
   --desired-count 1 \
   --force-new-deployment \
@@ -86,7 +93,7 @@ echo ""
 echo "Services are starting up. It may take 2-3 minutes for tasks to become healthy."
 echo ""
 echo "Monitor progress:"
-echo "  aws ecs describe-services --cluster $CLUSTER_NAME --services $BACKEND_SERVICE $FRONTEND_SERVICE --query 'services[].{name:serviceName,running:runningCount,desired:desiredCount,status:status}' --output table"
+echo "  ./scripts/status.sh"
 echo ""
 echo "Check backend health:"
 echo "  curl http://$ALB_DNS/health"

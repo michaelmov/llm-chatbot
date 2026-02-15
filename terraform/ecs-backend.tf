@@ -95,6 +95,10 @@ resource "aws_ecs_service" "backend" {
 
   depends_on = [aws_lb_listener.http]
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   tags = {
     Name = "${var.project_name}-backend"
   }

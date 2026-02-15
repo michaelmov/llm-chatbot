@@ -49,7 +49,7 @@ resource "aws_ecs_service" "redis" {
   name            = "${var.project_name}-redis"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.redis.arn
-  desired_count   = 1
+  desired_count   = var.app_desired_count
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -60,6 +60,10 @@ resource "aws_ecs_service" "redis" {
 
   service_registries {
     registry_arn = aws_service_discovery_service.redis.arn
+  }
+
+  lifecycle {
+    ignore_changes = [desired_count]
   }
 
   tags = {

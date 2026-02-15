@@ -68,6 +68,10 @@ resource "aws_ecs_service" "frontend" {
 
   depends_on = [aws_lb_listener.http]
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   tags = {
     Name = "${var.project_name}-frontend"
   }

@@ -12,7 +12,7 @@ npm run dev
 npm run dev:backend    # tsx watch src/index.ts (port 3001)
 npm run dev:frontend   # next dev (port 3000)
 
-# Run everything with Docker infra (postgres + redis)
+# Run everything with Docker infra (postgres)
 npm run dev:with-docker
 
 # Build
@@ -32,23 +32,19 @@ npm run db:generate    # Generate Drizzle migrations
 npm run db:migrate     # Run Drizzle migrations
 npm run db:push        # Push schema directly
 npm run db:studio      # Open Drizzle Studio
-
-# Redis
-npm run redis:start    # Start Redis container
-npm run redis:stop     # Stop Redis container
 ```
 
 **Node.js requirement:** `>=22.17.0`
 
 ## Architecture
 
-This is a monorepo (npm workspaces) with a WebSocket-based streaming chat application with user authentication.
+This is a monorepo (npm workspaces) with an SSE-based streaming chat application with user authentication.
 
 ### Backend (`/backend`)
 
-Express server with WebSocket support for real-time LLM streaming using LangChain.
+Express server with SSE (Server-Sent Events) streaming for real-time LLM responses using LangChain.
 
-**Request flow:** `index.ts` → `server.ts` (creates Express + WSS) → `websocket/handler.ts` (manages connections) → `providers/` (LLM integration)
+**Request flow:** `index.ts` → `server.ts` (creates Express app) → `routes/chat.ts` (SSE streaming endpoint) → `providers/` (LLM integration)
 
 **Provider pattern:** The `LLMProvider` interface (`providers/types.ts`) defines the contract for LLM integrations. Currently uses Anthropic via LangChain with agent support for tool calling. Providers are registered in `providers/factory.ts`.
 
@@ -58,12 +54,20 @@ Express server with WebSocket support for real-time LLM streaming using LangChai
 - `weatherForecastTool` — get 5-day weather forecast
 - `dateTimeTool` — get current date and time (`tools/datetime.ts`)
 
-**WebSocket protocol:**
+**SSE streaming protocol:**
 
-- Client sends: `chat` (with requestId + messages), `cancel`, `ping`
-- Server responds: `ready`, `start`, `token`, `done`, `error`, `canceled`, `pong`
+Client sends `POST /api/chat` with JSON body `{ requestId, messages, conversationId? }`. Server responds with an SSE stream:
 
-**Validation:** Messages validated in `websocket/validation.ts` with max payload size of 50,000 chars.
+| Event   | Payload                                    | Description              |
+| ------- | ------------------------------------------ | ------------------------ |
+| `start` | `{ requestId, conversationId }`            | Stream started           |
+| `token` | `{ token }`                                | Individual LLM token     |
+| `done`  | `{ requestId, text, conversationId }`      | Streaming complete       |
+| `error` | `{ error, requestId? }`                    | Error occurred           |
+
+Cancellation is handled by the client aborting the HTTP request (AbortController).
+
+**Validation:** Request body validated in `validation/chat.ts` with max payload size of 50,000 chars.
 
 **Health endpoint:** `GET /health` returns provider and model info.
 
@@ -78,7 +82,7 @@ Uses [better-auth](https://www.better-auth.com/) with email/password and a Beare
 
 **Middleware** (`middleware/auth.ts`):
 - `requireAuth` — validates `Authorization: Bearer <token>` header, calls `auth.api.getSession()`, sets `req.userId`
-- Applied to all `/api/conversations` routes and `POST /api/ws/ticket`
+- Applied to `POST /api/chat` and all `/api/conversations` routes
 
 **Frontend** (`lib/auth-client.ts`):
 - `createAuthClient()` from `better-auth/react` exposes `signIn`, `signUp`, `signOut`, `useSession`
@@ -90,18 +94,13 @@ Uses [better-auth](https://www.better-auth.com/) with email/password and a Beare
 - Checks for `better-auth.session_token` cookie, validates against backend's `/api/auth/get-session`
 - Redirects unauthenticated users to `/sign-in`
 
-### WebSocket Authentication
-
-Ticket-based auth flow to avoid sending long-lived tokens over WebSocket:
-
-1. Client calls `POST /api/ws/ticket` with Bearer token → receives a 30-second one-time ticket (stored in Redis)
-2. Client connects to `ws://localhost:3001/ws?ticket={ticket}`
-3. Server validates ticket during HTTP upgrade via `ticketService.validate()` (atomic `GETDEL` — single-use)
-4. On success, `userId` is mapped to the WebSocket connection via `WeakMap` in `server.ts`
-
-**Key files:** `services/ticket-service.ts`, `routes/ws-ticket.ts`, `server.ts` (upgrade handler)
-
 ### REST API Routes
+
+**Chat** (`routes/chat.ts`) — requires `requireAuth`:
+
+| Method | Path        | Description                       |
+| ------ | ----------- | --------------------------------- |
+| `POST` | `/api/chat` | SSE streaming chat endpoint       |
 
 **Conversations** (`routes/conversations.ts`) — all require `requireAuth`:
 
@@ -112,17 +111,10 @@ Ticket-based auth flow to avoid sending long-lived tokens over WebSocket:
 | `GET`    | `/api/conversations/:id`   | Get conversation with messages        |
 | `DELETE` | `/api/conversations/:id`   | Delete conversation (cascades to messages) |
 
-**WebSocket ticket** (`routes/ws-ticket.ts`):
-
-| Method | Path              | Description                  |
-| ------ | ----------------- | ---------------------------- |
-| `POST` | `/api/ws/ticket`  | Get one-time WebSocket ticket |
-
 ### Services Layer
 
 - `conversation.service.ts` — CRUD + `touch()` (updates `updatedAt` timestamp)
 - `message.service.ts` — create message + list by conversation
-- `ticket-service.ts` — create/validate WebSocket tickets in Redis (30s TTL, single-use via `GETDEL`)
 
 ### Database
 
@@ -138,13 +130,6 @@ PostgreSQL 17 with Drizzle ORM and postgres.js driver. Schema in `db/schema.ts`.
 - `account` — id, accountId, providerId, userId, tokens
 - `verification` — id, identifier, value, expiresAt
 
-### Redis
-
-`ioredis` with lazy connect (`redis.ts`). Connected on server start via `connectRedis()`.
-
-- Used for WebSocket ticket storage (30s TTL keys with `ws-ticket:` prefix)
-- Config: `REDIS_URL` env var (defaults to `redis://localhost:6379`)
-
 ### Logging
 
 Structured logging via `utils/logger.ts` — outputs `[timestamp] [LEVEL] message {metadata}`. Methods: `info`, `warn`, `error`, `debug`.
@@ -156,9 +141,9 @@ Next.js 16 with React 19, using Tailwind CSS 4 and shadcn/ui components.
 **Directory structure:**
 
 - `/frontend/app/` — Next.js app router pages and app-specific components
-- `/frontend/app/components/` — Chat components (ChatContainer, MessageList, MessageBubble, ChatInput, StatusIndicator, AppSidebar)
+- `/frontend/app/components/` — Chat components (ChatContainer, MessageList, MessageBubble, ChatInput, AppSidebar)
 - `/frontend/app/components/llm-output/` — LLMOutputRenderer, LLMOutputDynamic (streaming markdown + code blocks with `@llm-ui/*` + Shiki v3)
-- `/frontend/app/hooks/` — Custom hooks (useWebSocket, useConversations, useConversation)
+- `/frontend/app/hooks/` — Custom hooks (useChat, useConversations, useConversation)
 - `/frontend/components/` — Shared UI components (ui/, theme-provider, mode-toggle)
 - `/frontend/lib/` — Utilities (auth-client.ts, api.ts)
 
@@ -169,11 +154,12 @@ Next.js 16 with React 19, using Tailwind CSS 4 and shadcn/ui components.
 - `/c` — new chat
 - `/c/[conversationId]` — existing conversation
 
-**Component hierarchy:** `layout.tsx` (theme provider, sidebar) → `page.tsx` → `ChatContainer.tsx` (orchestrates state, WebSocket hook) → `MessageList`, `MessageBubble`, `ChatInput`, `StatusIndicator`
+**Component hierarchy:** `layout.tsx` (theme provider, sidebar) → `page.tsx` → `ChatContainer.tsx` (orchestrates state, chat hook) → `MessageList`, `MessageBubble`, `ChatInput`
 
 **Key features:**
 
-- `useWebSocket.ts` manages connection lifecycle, reconnection (3s delay), and 30s keep-alive pings
+- `useChat.ts` — sends `POST /api/chat` with Bearer token, parses SSE stream via `readSSEStream()`, supports AbortController-based cancellation
+- `lib/sse.ts` — SSE stream parser using ReadableStream API (buffers text until `\n\n` delimiter, parses `event:` and `data:` fields)
 - `useConversations.ts` / `useConversation.ts` — React Query hooks for conversation CRUD
 - `LLMOutputRenderer` — streaming markdown rendering with code syntax highlighting via `@llm-ui/*` and Shiki v3
 - `AppSidebar` — conversation list, user info, delete actions
@@ -184,17 +170,17 @@ Next.js 16 with React 19, using Tailwind CSS 4 and shadcn/ui components.
 
 ### Communication
 
-Frontend connects to `ws://localhost:3001/ws?ticket={ticket}` (ticket obtained via `POST /api/ws/ticket`). Messages stream as individual tokens with request IDs for tracking. Supports cancellation mid-stream.
+Frontend sends `POST /api/chat` with Bearer token authentication. Server responds with an SSE stream of individual tokens with request IDs for tracking. Cancellation is handled by aborting the HTTP request via AbortController.
 
 ## Docker
 
-**Production** (`docker-compose.yml`) — full stack with postgres, redis, backend, frontend:
+**Production** (`docker-compose.yml`) — full stack with postgres, backend, frontend:
 
 ```bash
 docker compose up
 ```
 
-**Development infrastructure** (`docker-compose.dev.yml`) — postgres + redis only:
+**Development infrastructure** (`docker-compose.dev.yml`) — postgres only:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
@@ -215,7 +201,6 @@ MODEL_MAX_TOKENS=4096
 ANTHROPIC_API_KEY=your-api-key-here
 WEATHER_API_KEY=your-weather-api-key-here  # From weatherapi.com
 DATABASE_URL=postgresql://chatbot:chatbot_dev@localhost:5432/chatbot
-REDIS_URL=redis://localhost:6379
 BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
 BACKEND_URL=http://localhost:3001
 # COOKIE_DOMAIN=.example.com  # Only for production with separate subdomains
@@ -226,7 +211,6 @@ Generate `BETTER_AUTH_SECRET` with: `openssl rand -base64 32`
 ### Frontend (`frontend/.env.local`)
 
 ```
-NEXT_PUBLIC_WS_URL=ws://localhost:3001/ws
 NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 

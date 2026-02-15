@@ -1,17 +1,16 @@
 # LLM Chatbot
 
-A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express backend and Next.js 16 frontend (React 19, Tailwind CSS 4, shadcn/ui).
+A model-agnostic chatbot with SSE streaming, built with Node.js/Express backend and Next.js 16 frontend (React 19, Tailwind CSS 4, shadcn/ui).
 
 ## Features
 
-- Real-time token streaming via WebSocket
+- Real-time token streaming via SSE (Server-Sent Events)
 - User authentication (email/password via better-auth)
 - Conversation management (create, list, delete)
 - Model-agnostic architecture (currently supports Anthropic Claude)
 - LangChain-based agent with tool calling support
 - Built-in tools: weather (current + 5-day forecast), date/time
 - Cancel in-progress requests
-- Connection status indicator
 - Responsive chat UI with dark mode support
 - Streaming markdown + code syntax highlighting (@llm-ui + Shiki v3)
 
@@ -19,7 +18,7 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 
 - Node.js >=22.17.0
 - npm
-- Docker (for PostgreSQL and Redis)
+- Docker (for PostgreSQL)
 - Anthropic API key
 - Weather API key (optional, from [weatherapi.com](https://www.weatherapi.com/))
 
@@ -28,22 +27,21 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 ```
 /llm-chatbot
 ├── package.json              # Workspace root
-├── docker-compose.yml        # Production stack (postgres, redis, backend, frontend)
-├── docker-compose.dev.yml    # Dev infrastructure (postgres + redis)
-├── backend/                  # Express + WebSocket server
+├── docker-compose.yml        # Production stack (postgres, backend, frontend)
+├── docker-compose.dev.yml    # Dev infrastructure (postgres)
+├── backend/                  # Express + SSE streaming server
 │   ├── src/
 │   │   ├── index.ts          # Entry point
 │   │   ├── config.ts         # Configuration
-│   │   ├── server.ts         # Express + WebSocket setup
+│   │   ├── server.ts         # Express server setup
 │   │   ├── auth.ts           # better-auth configuration
-│   │   ├── redis.ts          # Redis client (ioredis)
 │   │   ├── db/               # Database client & schema (Drizzle ORM)
 │   │   ├── middleware/       # Auth middleware (requireAuth)
 │   │   ├── providers/        # LLM provider implementations
-│   │   ├── routes/           # REST routes (conversations, ws-ticket)
-│   │   ├── services/         # Business logic (conversations, messages, tickets)
+│   │   ├── routes/           # REST routes (chat, conversations)
+│   │   ├── services/         # Business logic (conversations, messages)
 │   │   ├── tools/            # LangChain tools (weather, datetime)
-│   │   ├── websocket/        # WebSocket handling
+│   │   ├── validation/       # Request validation (chat)
 │   │   └── utils/            # Utilities (logger)
 │   └── package.json
 └── frontend/                 # Next.js app
@@ -54,7 +52,7 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
     │   ├── sign-up/           # Sign up page
     │   ├── c/                 # Chat pages (/c, /c/[conversationId])
     │   ├── components/        # Chat UI + AppSidebar + LLM output renderer
-    │   └── hooks/             # useWebSocket, useConversations, useConversation
+    │   └── hooks/             # useChat, useConversations, useConversation
     ├── components/            # Shared UI components (shadcn/ui)
     ├── lib/                   # Utilities (auth-client, api)
     └── package.json
@@ -82,11 +80,10 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
    BETTER_AUTH_SECRET=$(openssl rand -base64 32)
    ```
 
-3. **Start the database and Redis:**
+3. **Start the database:**
 
    ```bash
    npm run db:start
-   npm run redis:start
    npm run db:migrate
    ```
 
@@ -99,7 +96,6 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
    Add the backend API URL:
 
    ```
-   NEXT_PUBLIC_WS_URL=ws://localhost:3001/ws
    NEXT_PUBLIC_API_URL=http://localhost:3001
    ```
 
@@ -110,10 +106,10 @@ A model-agnostic chatbot with WebSocket streaming, built with Node.js/Express ba
 Start both backend and frontend:
 
 ```bash
-# Start backend + frontend (database and Redis must be running)
+# Start backend + frontend (database must be running)
 npm run dev
 
-# Or start everything including database and Redis
+# Or start everything including database
 npm run dev:with-docker
 ```
 
@@ -129,13 +125,6 @@ npm run db:push        # Push schema directly
 npm run db:studio      # Open Drizzle Studio
 ```
 
-#### Redis Commands
-
-```bash
-npm run redis:start    # Start Redis container
-npm run redis:stop     # Stop Redis container
-```
-
 #### Code Quality Commands
 
 ```bash
@@ -147,13 +136,13 @@ npm run format:check   # Check formatting
 
 ### Docker Deployment
 
-**Production** (full stack — postgres, redis, backend, frontend):
+**Production** (full stack — postgres, backend, frontend):
 
 ```bash
 docker compose up
 ```
 
-**Development infrastructure** (postgres + redis only):
+**Development infrastructure** (postgres only):
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
@@ -163,7 +152,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 - Frontend: http://localhost:3000
 - Backend Health: http://localhost:3001/health
-- WebSocket: ws://localhost:3001/ws
+- Chat API: POST http://localhost:3001/api/chat (SSE stream)
 
 ## Authentication
 
@@ -172,31 +161,34 @@ Uses [better-auth](https://www.better-auth.com/) with email/password authenticat
 - **Sign up / Sign in** at `/sign-up` and `/sign-in`
 - Session managed via cookies + Bearer tokens
 - All API routes protected by `requireAuth` middleware
-- **WebSocket auth:** ticket-based — client gets a 30-second single-use ticket via `POST /api/ws/ticket`, then connects with `ws://localhost:3001/ws?ticket={ticket}`. Tickets are stored in Redis and consumed atomically on use.
+- **Chat API auth:** Each `POST /api/chat` request includes `Authorization: Bearer <token>` header, validated by `requireAuth` middleware
 
 See `CLAUDE.md` for detailed auth architecture.
 
-## WebSocket Protocol
+## SSE Streaming Protocol
 
-### Client → Server
+### Client Request
 
-| Type     | Payload                   | Description        |
-| -------- | ------------------------- | ------------------ |
-| `chat`   | `{ requestId, messages }` | Send chat messages |
-| `cancel` | `{ requestId }`           | Cancel streaming   |
-| `ping`   | -                         | Keepalive          |
+`POST /api/chat` with JSON body:
 
-### Server → Client
+```json
+{
+  "requestId": "uuid",
+  "messages": [{ "role": "user", "content": "Hello" }],
+  "conversationId": "uuid (optional)"
+}
+```
 
-| Type       | Payload                 | Description            |
-| ---------- | ----------------------- | ---------------------- |
-| `ready`    | -                       | Connection established |
-| `start`    | `{ requestId }`         | Streaming started      |
-| `token`    | `{ requestId, token }`  | Token received         |
-| `done`     | `{ requestId, text }`   | Streaming complete     |
-| `error`    | `{ requestId?, error }` | Error occurred         |
-| `canceled` | `{ requestId }`         | Request canceled       |
-| `pong`     | -                       | Ping response          |
+Cancellation: Abort the HTTP request via AbortController.
+
+### Server SSE Events
+
+| Event   | Payload                                    | Description         |
+| ------- | ------------------------------------------ | ------------------- |
+| `start` | `{ requestId, conversationId }`            | Stream started      |
+| `token` | `{ token }`                                | Individual token    |
+| `done`  | `{ requestId, text, conversationId }`      | Streaming complete  |
+| `error` | `{ error, requestId? }`                    | Error occurred      |
 
 ## Configuration
 
@@ -212,7 +204,6 @@ See `CLAUDE.md` for detailed auth architecture.
 | `ANTHROPIC_API_KEY`   | -                              | Anthropic API key                        |
 | `WEATHER_API_KEY`     | -                              | Weather API key (optional)               |
 | `DATABASE_URL`        | -                              | PostgreSQL connection URL                |
-| `REDIS_URL`           | redis://localhost:6379         | Redis connection URL                     |
 | `BETTER_AUTH_SECRET`  | -                              | Auth secret (`openssl rand -base64 32`)  |
 | `BACKEND_URL`         | http://localhost:3001          | Backend URL (used by better-auth)        |
 | `FRONTEND_URL`        | http://localhost:3000          | Frontend URL (CORS origin)               |
@@ -222,7 +213,6 @@ See `CLAUDE.md` for detailed auth architecture.
 
 | Variable              | Default                  | Description              |
 | --------------------- | ------------------------ | ------------------------ |
-| `NEXT_PUBLIC_WS_URL`  | ws://localhost:3001/ws   | Backend WebSocket URL    |
 | `NEXT_PUBLIC_API_URL` | http://localhost:3001    | Backend API URL          |
 
 ## Adding New Providers

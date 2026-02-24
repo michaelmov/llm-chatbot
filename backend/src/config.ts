@@ -18,12 +18,15 @@ export const config = {
   },
   database: {
     url: process.env.DATABASE_URL || 'postgresql://chatbot:chatbot_dev@localhost:5432/chatbot',
+    ssl: process.env.DATABASE_SSL === 'true',
   },
   auth: {
     secret: process.env.BETTER_AUTH_SECRET || '',
   },
   backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
   cookieDomain: process.env.COOKIE_DOMAIN || undefined,
+  cookieSecure:
+    process.env.COOKIE_SECURE !== undefined ? process.env.COOKIE_SECURE === 'true' : true,
   validation: {
     maxPayloadSize: 50000,
   },

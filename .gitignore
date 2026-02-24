@@ -41,5 +41,11 @@ coverage/
 # Docker
 docker-compose.override.yml.bak
 
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/terraform.tfvars
+
 # Claude
 .claude/plans/

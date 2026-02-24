@@ -1,0 +1,20 @@
+# Copy this file to terraform.tfvars and fill in the values
+# cp terraform.tfvars.example terraform.tfvars
+
+aws_region = "us-east-1"
+
+# Database
+db_password = "CHANGE_ME_use_a_strong_password"
+
+# Secrets
+anthropic_api_key   = "sk-ant-..."
+weather_api_key     = "your-weatherapi-key"
+better_auth_secret  = "generate-with: openssl rand -base64 32"
+
+# ECS (set to 0 for initial deploy, then 1 after pushing images)
+app_desired_count = 0
+
+# Model (optional, defaults shown)
+# model_name        = "claude-3-5-sonnet-latest"
+# model_temperature = "0.3"
+# model_max_tokens  = "4096"

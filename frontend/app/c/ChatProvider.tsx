@@ -112,7 +112,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleDone = useCallback(
-    (data: { text: string }) => {
+    async (data: { text: string }) => {
       if (streamingMessageIdRef.current && data.text) {
         setLocalMessages((prev) =>
           prev.map((m) =>
@@ -124,6 +124,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streamingMessageIdRef.current = null;
       setStreamingMessageId(null);
       queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
+      await queryClient.refetchQueries({ queryKey: ['conversations', activeConversationIdRef.current] });
+      setLocalMessages([]);
     },
     [queryClient]
   );

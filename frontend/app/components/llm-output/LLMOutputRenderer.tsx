@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  codeBlockLookBack,
-  findCompleteCodeBlock,
-  findPartialCodeBlock,
-} from '@llm-ui/code';
+import { codeBlockLookBack, findCompleteCodeBlock, findPartialCodeBlock } from '@llm-ui/code';
 import { markdownLookBack } from '@llm-ui/markdown';
 import { useLLMOutput } from '@llm-ui/react';
 import { CodeBlock } from './CodeBlock';

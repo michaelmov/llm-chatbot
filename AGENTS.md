@@ -58,12 +58,12 @@ Express server with SSE (Server-Sent Events) streaming for real-time LLM respons
 
 Client sends `POST /api/chat` with JSON body `{ requestId, messages, conversationId? }`. Server responds with an SSE stream:
 
-| Event   | Payload                                    | Description              |
-| ------- | ------------------------------------------ | ------------------------ |
-| `start` | `{ requestId, conversationId }`            | Stream started           |
-| `token` | `{ token }`                                | Individual LLM token     |
-| `done`  | `{ requestId, text, conversationId }`      | Streaming complete       |
-| `error` | `{ error, requestId? }`                    | Error occurred           |
+| Event   | Payload                               | Description          |
+| ------- | ------------------------------------- | -------------------- |
+| `start` | `{ requestId, conversationId }`       | Stream started       |
+| `token` | `{ token }`                           | Individual LLM token |
+| `done`  | `{ requestId, text, conversationId }` | Streaming complete   |
+| `error` | `{ error, requestId? }`               | Error occurred       |
 
 Cancellation is handled by the client aborting the HTTP request (AbortController).
 
@@ -76,20 +76,24 @@ Cancellation is handled by the client aborting the HTTP request (AbortController
 Uses [better-auth](https://www.better-auth.com/) with email/password and a Bearer token plugin.
 
 **Backend setup** (`auth.ts`):
+
 - `betterAuth()` configured with Drizzle adapter, `emailAndPassword` enabled, `bearer()` plugin
 - Auth REST endpoints mounted at `/api/auth/*` via `toNodeHandler(auth)` in `server.ts`
 - Cross-subdomain cookie support via `COOKIE_DOMAIN` config
 
 **Middleware** (`middleware/auth.ts`):
+
 - `requireAuth` — validates `Authorization: Bearer <token>` header, calls `auth.api.getSession()`, sets `req.userId`
 - Applied to `POST /api/chat` and all `/api/conversations` routes
 
 **Frontend** (`lib/auth-client.ts`):
+
 - `createAuthClient()` from `better-auth/react` exposes `signIn`, `signUp`, `signOut`, `useSession`
 - All API calls include `credentials: 'include'` for cookie-based sessions
 - `apiFetch()` helper (`lib/api.ts`) attaches `Authorization: Bearer <token>` header
 
 **Next.js middleware** (`frontend/middleware.ts`):
+
 - Protects all routes except `/sign-in`, `/sign-up`, and static assets
 - Checks for `better-auth.session_token` cookie, validates against backend's `/api/auth/get-session`
 - Redirects unauthenticated users to `/sign-in`
@@ -98,18 +102,18 @@ Uses [better-auth](https://www.better-auth.com/) with email/password and a Beare
 
 **Chat** (`routes/chat.ts`) — requires `requireAuth`:
 
-| Method | Path        | Description                       |
-| ------ | ----------- | --------------------------------- |
-| `POST` | `/api/chat` | SSE streaming chat endpoint       |
+| Method | Path        | Description                 |
+| ------ | ----------- | --------------------------- |
+| `POST` | `/api/chat` | SSE streaming chat endpoint |
 
 **Conversations** (`routes/conversations.ts`) — all require `requireAuth`:
 
-| Method   | Path                       | Description                           |
-| -------- | -------------------------- | ------------------------------------- |
-| `POST`   | `/api/conversations`       | Create conversation                   |
-| `GET`    | `/api/conversations`       | List user's conversations             |
-| `GET`    | `/api/conversations/:id`   | Get conversation with messages        |
-| `DELETE` | `/api/conversations/:id`   | Delete conversation (cascades to messages) |
+| Method   | Path                     | Description                                |
+| -------- | ------------------------ | ------------------------------------------ |
+| `POST`   | `/api/conversations`     | Create conversation                        |
+| `GET`    | `/api/conversations`     | List user's conversations                  |
+| `GET`    | `/api/conversations/:id` | Get conversation with messages             |
+| `DELETE` | `/api/conversations/:id` | Delete conversation (cascades to messages) |
 
 ### Services Layer
 
@@ -121,10 +125,12 @@ Uses [better-auth](https://www.better-auth.com/) with email/password and a Beare
 PostgreSQL 17 with Drizzle ORM and postgres.js driver. Schema in `db/schema.ts`. Migrations in `backend/drizzle/`, config in `backend/drizzle.config.ts`.
 
 **Chat tables:**
+
 - `conversations` — id, userId, title, timestamps
 - `messages` — id, conversationId, role (user/assistant/system), content, timestamp
 
 **Better-auth managed tables** (auto-managed, do not modify manually):
+
 - `user` — id, name, email, emailVerified, image, timestamps
 - `session` — id, token, expiresAt, userId, timestamps
 - `account` — id, accountId, providerId, userId, tokens

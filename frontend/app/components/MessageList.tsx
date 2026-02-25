@@ -27,9 +27,7 @@ export function MessageList({ messages, isStreaming, streamingMessageId }: Messa
           </div>
         ) : (
           visibleMessages.map((message) => {
-            const isStreamFinished = !(
-              isStreaming && message.id === streamingMessageId
-            );
+            const isStreamFinished = !(isStreaming && message.id === streamingMessageId);
             return (
               <MessageBubble
                 key={message.id}

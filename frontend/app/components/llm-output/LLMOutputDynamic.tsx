@@ -12,7 +12,7 @@ const LLMOutputRenderer = dynamic(
         <Spinner />
       </div>
     ),
-  },
+  }
 );
 
 interface LLMOutputDynamicProps {

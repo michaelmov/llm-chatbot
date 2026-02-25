@@ -183,37 +183,37 @@ Cancellation: Abort the HTTP request via AbortController.
 
 ### Server SSE Events
 
-| Event   | Payload                                    | Description         |
-| ------- | ------------------------------------------ | ------------------- |
-| `start` | `{ requestId, conversationId }`            | Stream started      |
-| `token` | `{ token }`                                | Individual token    |
-| `done`  | `{ requestId, text, conversationId }`      | Streaming complete  |
-| `error` | `{ error, requestId? }`                    | Error occurred      |
+| Event   | Payload                               | Description        |
+| ------- | ------------------------------------- | ------------------ |
+| `start` | `{ requestId, conversationId }`       | Stream started     |
+| `token` | `{ token }`                           | Individual token   |
+| `done`  | `{ requestId, text, conversationId }` | Streaming complete |
+| `error` | `{ error, requestId? }`               | Error occurred     |
 
 ## Configuration
 
 ### Backend
 
-| Variable              | Default                        | Description                              |
-| --------------------- | ------------------------------ | ---------------------------------------- |
-| `PORT`                | 3001                           | Server port                              |
-| `LLM_PROVIDER`        | anthropic                      | LLM provider                             |
-| `MODEL_NAME`          | claude-3-5-sonnet-latest       | Model name                               |
-| `MODEL_TEMPERATURE`   | 0.3                            | Temperature                              |
-| `MODEL_MAX_TOKENS`    | 4096                           | Max tokens                               |
-| `ANTHROPIC_API_KEY`   | -                              | Anthropic API key                        |
-| `WEATHER_API_KEY`     | -                              | Weather API key (optional)               |
-| `DATABASE_URL`        | -                              | PostgreSQL connection URL                |
-| `BETTER_AUTH_SECRET`  | -                              | Auth secret (`openssl rand -base64 32`)  |
-| `BACKEND_URL`         | http://localhost:3001          | Backend URL (used by better-auth)        |
-| `FRONTEND_URL`        | http://localhost:3000          | Frontend URL (CORS origin)               |
-| `COOKIE_DOMAIN`       | -                              | Cookie domain (production cross-subdomain) |
+| Variable             | Default                  | Description                                |
+| -------------------- | ------------------------ | ------------------------------------------ |
+| `PORT`               | 3001                     | Server port                                |
+| `LLM_PROVIDER`       | anthropic                | LLM provider                               |
+| `MODEL_NAME`         | claude-3-5-sonnet-latest | Model name                                 |
+| `MODEL_TEMPERATURE`  | 0.3                      | Temperature                                |
+| `MODEL_MAX_TOKENS`   | 4096                     | Max tokens                                 |
+| `ANTHROPIC_API_KEY`  | -                        | Anthropic API key                          |
+| `WEATHER_API_KEY`    | -                        | Weather API key (optional)                 |
+| `DATABASE_URL`       | -                        | PostgreSQL connection URL                  |
+| `BETTER_AUTH_SECRET` | -                        | Auth secret (`openssl rand -base64 32`)    |
+| `BACKEND_URL`        | http://localhost:3001    | Backend URL (used by better-auth)          |
+| `FRONTEND_URL`       | http://localhost:3000    | Frontend URL (CORS origin)                 |
+| `COOKIE_DOMAIN`      | -                        | Cookie domain (production cross-subdomain) |
 
 ### Frontend
 
-| Variable              | Default                  | Description              |
-| --------------------- | ------------------------ | ------------------------ |
-| `NEXT_PUBLIC_API_URL` | http://localhost:3001    | Backend API URL          |
+| Variable              | Default               | Description     |
+| --------------------- | --------------------- | --------------- |
+| `NEXT_PUBLIC_API_URL` | http://localhost:3001 | Backend API URL |
 
 ## Adding New Providers
 

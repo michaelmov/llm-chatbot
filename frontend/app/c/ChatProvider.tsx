@@ -124,7 +124,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streamingMessageIdRef.current = null;
       setStreamingMessageId(null);
       queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
-      await queryClient.refetchQueries({ queryKey: ['conversations', activeConversationIdRef.current] });
+      await queryClient.refetchQueries({
+        queryKey: ['conversations', activeConversationIdRef.current],
+      });
       setLocalMessages([]);
     },
     [queryClient]

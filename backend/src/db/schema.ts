@@ -1,4 +1,13 @@
-import { pgTable, uuid, varchar, text, timestamp, pgEnum, boolean, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  pgEnum,
+  boolean,
+  index,
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ── Better Auth tables ──

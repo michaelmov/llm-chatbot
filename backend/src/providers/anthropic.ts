@@ -71,7 +71,8 @@ CRITICAL: Tool outputs are streamed directly to the user. Do NOT repeat, reforma
         // Stream both AI messages and tool messages (for inline tool output)
         if (ToolMessage.isInstance(token)) {
           // Access artifact from ToolMessage to check shouldSummarize flag
-          const shouldSummarize = (token.artifact as ToolArtifact | undefined)?.shouldSummarize ?? true;
+          const shouldSummarize =
+            (token.artifact as ToolArtifact | undefined)?.shouldSummarize ?? true;
 
           if (!shouldSummarize && typeof token.content === 'string' && token.content) {
             // Stream raw tool output directly to user

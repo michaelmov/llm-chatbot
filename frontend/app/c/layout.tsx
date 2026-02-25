@@ -6,8 +6,10 @@ import { useSession } from '@/lib/auth-client';
 import { Spinner } from '@/components/ui/spinner';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '../components/AppSidebar';
+import { ChatProvider } from './ChatProvider';
+import { ChatContainer } from '../components/ChatContainer';
 
-export default function ChatLayout({ children }: { children: React.ReactNode }) {
+export default function ChatLayout({ children: _children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data: sessionData, isPending } = useSession();
 
@@ -30,9 +32,13 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
-    </SidebarProvider>
+    <ChatProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <ChatContainer />
+        </SidebarInset>
+      </SidebarProvider>
+    </ChatProvider>
   );
 }

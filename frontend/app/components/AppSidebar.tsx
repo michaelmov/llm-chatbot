@@ -55,9 +55,17 @@ export function AppSidebar() {
     setPendingDeleteId(null);
 
     await apiFetch(`/api/conversations/${deletingId}`, token, { method: 'DELETE' });
-    await queryClient.invalidateQueries({ queryKey: ['conversations'] });
 
-    if (activeConversationId === deletingId) {
+    // useParams() doesn't update when URL is changed via window.history.replaceState
+    // (which ChatContainer does when a new conversation is created from /c).
+    // Check window.location.pathname as a fallback to cover that case.
+    const isViewingDeleted =
+      activeConversationId === deletingId || window.location.pathname === `/c/${deletingId}`;
+
+    // Don't await — let the sidebar list update in the background without blocking navigation
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
+    if (isViewingDeleted) {
       router.push('/c');
     }
   };

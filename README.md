@@ -109,8 +109,8 @@ Start both backend and frontend:
 # Start backend + frontend (database must be running)
 npm run dev
 
-# Or start everything including database
-npm run dev:with-docker
+# Or start everything including postgres database (Docker)
+npm run dev:with-db
 ```
 
 #### Database Commands

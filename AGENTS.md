@@ -12,8 +12,8 @@ npm run dev
 npm run dev:backend    # tsx watch src/index.ts (port 3001)
 npm run dev:frontend   # next dev (port 3000)
 
-# Run everything with Docker infra (postgres)
-npm run dev:with-docker
+# Run everything with Docker DB (postgres)
+npm run dev:with-db
 
 # Build
 npm run build          # Builds both workspaces

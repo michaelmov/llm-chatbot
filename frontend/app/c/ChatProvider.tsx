@@ -51,13 +51,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Which conversation the active stream belongs to
   const [streamingConvId, setStreamingConvId] = useState<string | null>(null);
 
+  const [prevConversationId, setPrevConversationId] = useState(conversationId);
+  // True when we triggered the navigation (new conversation created via our own send)
+  const [isOwnNavigation, setIsOwnNavigation] = useState(false);
+
   const currentRequestIdRef = useRef<string | null>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
   // Ref mirror of streamingConvId so callbacks always see the latest value
   const streamingConvIdRef = useRef<string | null>(null);
-  const activeConversationIdRef = useRef<string | undefined>(conversationId);
-  const isNavigatingToNewConversationRef = useRef(false);
-  const prevConversationIdRef = useRef<string | undefined>(conversationId);
 
   // Keep streamingConvIdRef in sync with state
   useEffect(() => {
@@ -79,32 +80,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Detect route changes: own navigation vs user navigation
-  useEffect(() => {
-    if (conversationId === prevConversationIdRef.current) return;
-
-    if (isNavigatingToNewConversationRef.current) {
+  if (prevConversationId !== conversationId) {
+    setPrevConversationId(conversationId);
+    if (isOwnNavigation) {
       // We triggered this navigation (new conversation created).
       // The user message is now in DB → will come from loadedMessages.
       // Keep streaming conversation's messages (assistant message still streaming),
       // clear the null-keyed messages (user message now in DB).
-      isNavigatingToNewConversationRef.current = false;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsOwnNavigation(false);
       setLocalMsgsByConvId((prev) => {
         const next = new Map(prev);
         next.delete(null); // user message is now in DB
         // keep the streaming conversation's messages (assistant message still streaming)
         return next;
       });
-    } else {
-      // User navigated (sidebar click, new chat, etc.)
-      // Do NOT cancel the stream — let it keep running in the background.
-      // Just update the active conversation tracking.
-      activeConversationIdRef.current = conversationId;
     }
-
-    prevConversationIdRef.current = conversationId;
-     
-  }, [conversationId]);
+  }
 
   const handleStart = useCallback(
     (data: { requestId: string; conversationId: string }) => {
@@ -120,9 +111,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (data.conversationId) {
-        activeConversationIdRef.current = data.conversationId;
         if (!conversationId) {
-          isNavigatingToNewConversationRef.current = true;
+          setIsOwnNavigation(true);
           router.replace(`/c/${data.conversationId}`);
         }
         queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });

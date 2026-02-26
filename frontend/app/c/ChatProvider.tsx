@@ -170,9 +170,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       if (streamingMessageIdRef.current && convId !== undefined) {
         setMsgsForConv(convId, (prev) =>
           prev.map((m) =>
-            m.id === streamingMessageIdRef.current
-              ? { ...m, content: `Error: ${data.error}` }
-              : m
+            m.id === streamingMessageIdRef.current ? { ...m, content: `Error: ${data.error}` } : m
           )
         );
       }

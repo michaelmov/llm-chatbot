@@ -8,8 +8,8 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently --names 'backend,frontend' --prefix-colors 'bgBlue,bgGreen' \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "dev:with-db": "concurrently --names 'backend,frontend,db' --prefix-colors 'bgBlue,bgGreen,bgRed' \"npm:db:start\" \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev": "concurrently --names 'backend,frontend' --prefix-colors 'bgGreen,bgBlue' \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:with-db": "concurrently --names 'db,backend,frontend' --prefix-colors 'bgRed,bgGreen,bgBlue' \"npm:db:start\" \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "build": "npm run build --workspaces --if-present",

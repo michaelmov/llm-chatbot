@@ -43,16 +43,40 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const sessionToken = sessionData?.session?.token;
 
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  // Per-conversation local messages map: convId (or null for new) → Message[]
+  const [localMsgsByConvId, setLocalMsgsByConvId] = useState<Map<string | null, Message[]>>(
+    () => new Map()
+  );
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  // Which conversation the active stream belongs to
+  const [streamingConvId, setStreamingConvId] = useState<string | null>(null);
 
   const currentRequestIdRef = useRef<string | null>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
+  // Ref mirror of streamingConvId so callbacks always see the latest value
+  const streamingConvIdRef = useRef<string | null>(null);
   const activeConversationIdRef = useRef<string | undefined>(conversationId);
   const isNavigatingToNewConversationRef = useRef(false);
   const prevConversationIdRef = useRef<string | undefined>(conversationId);
 
+  // Keep streamingConvIdRef in sync with state
+  useEffect(() => {
+    streamingConvIdRef.current = streamingConvId;
+  }, [streamingConvId]);
+
   const { data: conversationData } = useConversation(conversationId, sessionToken);
+
+  // Helper: update messages for a specific conversation
+  const setMsgsForConv = useCallback(
+    (convId: string | null, updater: (prev: Message[]) => Message[]) => {
+      setLocalMsgsByConvId((prev) => {
+        const next = new Map(prev);
+        next.set(convId, updater(next.get(convId) ?? []));
+        return next;
+      });
+    },
+    []
+  );
 
   // Detect route changes: own navigation vs user navigation
   useEffect(() => {
@@ -61,33 +85,39 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     if (isNavigatingToNewConversationRef.current) {
       // We triggered this navigation (new conversation created).
       // The user message is now in DB → will come from loadedMessages.
-      // Keep only the in-flight streaming assistant message to avoid duplication.
+      // Keep streaming conversation's messages (assistant message still streaming),
+      // clear the null-keyed messages (user message now in DB).
       isNavigatingToNewConversationRef.current = false;
-      setLocalMessages((prev) =>
-        streamingMessageIdRef.current
-          ? prev.filter((m) => m.id === streamingMessageIdRef.current)
-          : []
-      );
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocalMsgsByConvId((prev) => {
+        const next = new Map(prev);
+        next.delete(null); // user message is now in DB
+        // keep the streaming conversation's messages (assistant message still streaming)
+        return next;
+      });
     } else {
-      // User navigated (sidebar click, new chat, etc.) — reset state
-      cancelStream();
-      setLocalMessages([]);
-      currentRequestIdRef.current = null;
-      streamingMessageIdRef.current = null;
-      setStreamingMessageId(null);
+      // User navigated (sidebar click, new chat, etc.)
+      // Do NOT cancel the stream — let it keep running in the background.
+      // Just update the active conversation tracking.
       activeConversationIdRef.current = conversationId;
     }
 
     prevConversationIdRef.current = conversationId;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [conversationId]);
 
   const handleStart = useCallback(
     (data: { requestId: string; conversationId: string }) => {
       const assistantId = uuidv4();
+      const convId = data.conversationId ?? null;
       streamingMessageIdRef.current = assistantId;
       setStreamingMessageId(assistantId);
-      setLocalMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+      setStreamingConvId(convId);
+      streamingConvIdRef.current = convId;
+      setMsgsForConv(convId, (prev) => [
+        ...prev,
+        { id: assistantId, role: 'assistant', content: '' },
+      ]);
 
       if (data.conversationId) {
         activeConversationIdRef.current = data.conversationId;
@@ -98,23 +128,28 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
       }
     },
-    [conversationId, queryClient, router]
+    [conversationId, queryClient, router, setMsgsForConv]
   );
 
-  const handleToken = useCallback((data: { token: string }) => {
-    if (streamingMessageIdRef.current && data.token) {
-      setLocalMessages((prev) =>
-        prev.map((m) =>
-          m.id === streamingMessageIdRef.current ? { ...m, content: m.content + data.token } : m
-        )
-      );
-    }
-  }, []);
+  const handleToken = useCallback(
+    (data: { token: string }) => {
+      const convId = streamingConvIdRef.current;
+      if (streamingMessageIdRef.current && data.token && convId !== undefined) {
+        setMsgsForConv(convId, (prev) =>
+          prev.map((m) =>
+            m.id === streamingMessageIdRef.current ? { ...m, content: m.content + data.token } : m
+          )
+        );
+      }
+    },
+    [setMsgsForConv]
+  );
 
   const handleDone = useCallback(
-    async (data: { text: string }) => {
-      if (streamingMessageIdRef.current && data.text) {
-        setLocalMessages((prev) =>
+    async (data: { text: string; conversationId: string }) => {
+      const convId = streamingConvIdRef.current;
+      if (streamingMessageIdRef.current && data.text && convId) {
+        setMsgsForConv(convId, (prev) =>
           prev.map((m) =>
             m.id === streamingMessageIdRef.current ? { ...m, content: data.text } : m
           )
@@ -123,27 +158,42 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       currentRequestIdRef.current = null;
       streamingMessageIdRef.current = null;
       setStreamingMessageId(null);
+      setStreamingConvId(null);
+      streamingConvIdRef.current = null;
+
       queryClient.invalidateQueries({ queryKey: ['conversations'], exact: true });
-      await queryClient.refetchQueries({
-        queryKey: ['conversations', activeConversationIdRef.current],
+      await queryClient.refetchQueries({ queryKey: ['conversations', convId] });
+
+      // Clear local messages for this conversation — DB data is now fresh
+      setLocalMsgsByConvId((prev) => {
+        const next = new Map(prev);
+        next.delete(convId);
+        return next;
       });
-      setLocalMessages([]);
     },
-    [queryClient]
+    [queryClient, setMsgsForConv]
   );
 
-  const handleError = useCallback((data: { error: string }) => {
-    if (streamingMessageIdRef.current) {
-      setLocalMessages((prev) =>
-        prev.map((m) =>
-          m.id === streamingMessageIdRef.current ? { ...m, content: `Error: ${data.error}` } : m
-        )
-      );
-    }
-    currentRequestIdRef.current = null;
-    streamingMessageIdRef.current = null;
-    setStreamingMessageId(null);
-  }, []);
+  const handleError = useCallback(
+    (data: { error: string }) => {
+      const convId = streamingConvIdRef.current;
+      if (streamingMessageIdRef.current && convId !== undefined) {
+        setMsgsForConv(convId, (prev) =>
+          prev.map((m) =>
+            m.id === streamingMessageIdRef.current
+              ? { ...m, content: `Error: ${data.error}` }
+              : m
+          )
+        );
+      }
+      currentRequestIdRef.current = null;
+      streamingMessageIdRef.current = null;
+      setStreamingMessageId(null);
+      setStreamingConvId(null);
+      streamingConvIdRef.current = null;
+    },
+    [setMsgsForConv]
+  );
 
   const { sendChat, cancelStream, isStreaming } = useChat({
     sessionToken,
@@ -164,26 +214,49 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }));
   }, [conversationData]);
 
-  const messages = useMemo(
-    () => [...loadedMessages, ...localMessages],
-    [loadedMessages, localMessages]
-  );
+  // Is the currently viewed conversation the one being streamed?
+  const isCurrentConvStreaming = isStreaming && streamingConvId === (conversationId ?? null);
+
+  // Only show streaming indicator when on the streaming conversation
+  const currentStreamingMessageId = isCurrentConvStreaming ? streamingMessageId : null;
+
+  const messages = useMemo(() => {
+    // Derive local messages inside useMemo to avoid stale reference in deps
+    const local = localMsgsByConvId.get(conversationId ?? null) ?? [];
+    return [...loadedMessages, ...local];
+  }, [loadedMessages, localMsgsByConvId, conversationId]);
 
   const conversationTitle = conversationData?.conversation.title ?? 'New Conversation';
 
   const handleSend = useCallback(
     (content: string) => {
+      // Abandon any stream belonging to a different conversation
+      if (isStreaming && streamingConvId !== null && streamingConvId !== (conversationId ?? null)) {
+        setLocalMsgsByConvId((prev) => {
+          const next = new Map(prev);
+          next.delete(streamingConvId); // drop the partial response
+          return next;
+        });
+        setStreamingConvId(null);
+        setStreamingMessageId(null);
+        streamingMessageIdRef.current = null;
+        streamingConvIdRef.current = null;
+      }
+
+      const convId = conversationId ?? null;
       const userMessage: Message = { id: uuidv4(), role: 'user', content };
-      setLocalMessages((prev) => [...prev, userMessage]);
+      setMsgsForConv(convId, (prev) => [...prev, userMessage]);
 
       const requestId = uuidv4();
       currentRequestIdRef.current = requestId;
-
       const allMessages = [...messages, userMessage];
-      const chatMessages = allMessages.map(({ role, content: c }) => ({ role, content: c }));
-      sendChat(requestId, chatMessages, activeConversationIdRef.current);
+      sendChat(
+        requestId,
+        allMessages.map(({ role, content: c }) => ({ role, content: c })),
+        conversationId
+      );
     },
-    [messages, sendChat]
+    [isStreaming, streamingConvId, conversationId, messages, sendChat, setMsgsForConv]
   );
 
   const handleStop = useCallback(() => {
@@ -193,13 +266,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ChatContextValue>(
     () => ({
       messages,
-      streamingMessageId,
-      isStreaming,
+      streamingMessageId: currentStreamingMessageId,
+      isStreaming: isCurrentConvStreaming,
       conversationTitle,
       handleSend,
       handleStop,
     }),
-    [messages, streamingMessageId, isStreaming, conversationTitle, handleSend, handleStop]
+    [
+      messages,
+      currentStreamingMessageId,
+      isCurrentConvStreaming,
+      conversationTitle,
+      handleSend,
+      handleStop,
+    ]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

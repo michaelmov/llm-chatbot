@@ -26,17 +26,17 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - '3001:3001'
+    env_file:
+      - backend/.env
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - LLM_PROVIDER=${LLM_PROVIDER:-anthropic}
-      - MODEL_NAME=${MODEL_NAME:-claude-3-5-sonnet-latest}
-      - MODEL_TEMPERATURE=${MODEL_TEMPERATURE:-0.3}
-      - MODEL_MAX_TOKENS=${MODEL_MAX_TOKENS:-4096}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - WEATHER_API_KEY=${WEATHER_API_KEY}
       - DATABASE_URL=postgresql://chatbot:chatbot_dev@postgres:5432/chatbot
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:3001}
+      - DATABASE_SSL=${DATABASE_SSL:-false}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
     depends_on:
       postgres:
         condition: service_healthy

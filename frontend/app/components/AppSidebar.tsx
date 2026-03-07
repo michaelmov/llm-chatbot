@@ -44,6 +44,7 @@ export function AppSidebar() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const handleSignOut = async () => {
+    queryClient.clear();
     await signOut();
     router.push('/sign-in');
     router.refresh();

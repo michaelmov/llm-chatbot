@@ -14,18 +14,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get('better-auth.session_token');
-
-  if (!sessionCookie?.value) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-  }
-
   try {
     const backendUrl =
       process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const res = await fetch(`${backendUrl}/api/auth/get-session`, {
       headers: {
-        cookie: `better-auth.session_token=${sessionCookie.value}`,
+        cookie: request.headers.get('cookie') || '',
       },
     });
 

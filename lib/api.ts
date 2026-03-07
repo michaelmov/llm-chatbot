@@ -1,0 +1,14 @@
+export async function apiFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...init?.headers,
+    },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}

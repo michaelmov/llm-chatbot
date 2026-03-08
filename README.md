@@ -1,12 +1,12 @@
 # LLM Chatbot
 
-A model-agnostic chatbot with SSE streaming, built with Node.js/Express backend and Next.js 16 frontend (React 19, Tailwind CSS 4, shadcn/ui).
+A model-agnostic chatbot with SSE streaming, built with Next.js 16 (React 19, Tailwind CSS 4, shadcn/ui).
 
 ## Features
 
 - Real-time token streaming via SSE (Server-Sent Events)
-- User authentication (email/password via better-auth)
-- Conversation management (create, list, delete)
+- User authentication (email/password via better-auth, cookie-based)
+- Conversation management (create, list, delete via server actions)
 - Model-agnostic architecture (currently supports Anthropic Claude)
 - LangChain-based agent with tool calling support
 - Built-in tools: weather (current + 5-day forecast), date/time
@@ -26,36 +26,41 @@ A model-agnostic chatbot with SSE streaming, built with Node.js/Express backend 
 
 ```
 /llm-chatbot
-├── package.json              # Workspace root
-├── docker-compose.yml        # Production stack (postgres, backend, frontend)
+├── package.json              # Single package (no workspaces)
+├── docker-compose.yml        # Production stack (postgres + Next.js app)
 ├── docker-compose.dev.yml    # Dev infrastructure (postgres)
-├── backend/                  # Express + SSE streaming server
-│   ├── src/
-│   │   ├── index.ts          # Entry point
-│   │   ├── config.ts         # Configuration
-│   │   ├── server.ts         # Express server setup
-│   │   ├── auth.ts           # better-auth configuration
-│   │   ├── db/               # Database client & schema (Drizzle ORM)
-│   │   ├── middleware/       # Auth middleware (requireAuth)
-│   │   ├── providers/        # LLM provider implementations
-│   │   ├── routes/           # REST routes (chat, conversations)
-│   │   ├── services/         # Business logic (conversations, messages)
-│   │   ├── tools/            # LangChain tools (weather, datetime)
-│   │   ├── validation/       # Request validation (chat)
-│   │   └── utils/            # Utilities (logger)
-│   └── package.json
-└── frontend/                 # Next.js app
-    ├── middleware.ts          # Route protection (auth check)
-    ├── app/
-    │   ├── page.tsx           # Root redirect
-    │   ├── sign-in/           # Sign in page
-    │   ├── sign-up/           # Sign up page
-    │   ├── c/                 # Chat pages (/c, /c/[conversationId])
-    │   ├── components/        # Chat UI + AppSidebar + LLM output renderer
-    │   └── hooks/             # useChat, useConversations, useConversation
-    ├── components/            # Shared UI components (shadcn/ui)
-    ├── lib/                   # Utilities (auth-client, api)
-    └── package.json
+├── proxy.ts                  # Auth proxy (redirects unauthenticated users)
+├── app/
+│   ├── page.tsx              # Root redirect → /c
+│   ├── sign-in/              # Sign in page
+│   ├── sign-up/              # Sign up page
+│   ├── c/                    # Chat route group
+│   │   ├── ChatProvider.tsx  # Client-side chat context (SSE streaming state)
+│   │   ├── actions.ts        # Server actions (deleteConversation)
+│   │   ├── layout.tsx        # Loads conversations server-side
+│   │   └── [conversationId]/ # Individual conversation page
+│   ├── api/
+│   │   ├── chat/             # POST /api/chat (SSE streaming)
+│   │   ├── auth/             # better-auth catch-all handler
+│   │   └── health/           # GET /api/health
+│   ├── components/           # Chat UI + AppSidebar + AuthCard + LLM output renderer
+│   └── hooks/                # useChat, use-mobile
+├── components/               # Shared UI components (shadcn/ui)
+├── lib/
+│   ├── auth.ts               # better-auth server instance
+│   ├── auth-client.ts        # Client-side auth (credentials: 'include')
+│   ├── sse.ts                # SSE stream reader
+│   ├── utils.ts              # Utility functions
+│   └── server/               # Server-only code
+│       ├── config.ts         # Environment-based configuration
+│       ├── db/               # Drizzle ORM client & schema
+│       ├── services/         # Conversation & message services
+│       ├── providers/        # LLM provider implementations
+│       ├── tools/            # LangChain tools (weather, datetime)
+│       ├── validation/       # Request validation
+│       ├── auth-helpers.ts   # getSessionUser(), getAuthenticatedUserId()
+│       └── logger.ts         # Structured logging
+└── drizzle/                  # Database migration files
 ```
 
 ## Setup
@@ -63,16 +68,16 @@ A model-agnostic chatbot with SSE streaming, built with Node.js/Express backend 
 1. **Clone and install dependencies:**
 
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 
-2. **Configure backend environment:**
+2. **Configure environment:**
 
    ```bash
-   cp backend/.env.example backend/.env
+   cp .env.example .env.local
    ```
 
-   Edit `backend/.env` and add your API keys and auth secret:
+   Edit `.env.local` and add your API keys and auth secret:
 
    ```
    ANTHROPIC_API_KEY=your-api-key-here
@@ -87,26 +92,12 @@ A model-agnostic chatbot with SSE streaming, built with Node.js/Express backend 
    npm run db:migrate
    ```
 
-4. **Configure frontend environment:**
-
-   ```bash
-   cp frontend/.env.example frontend/.env.local
-   ```
-
-   Add the backend API URL:
-
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:3001
-   ```
-
 ## Running the Application
 
 ### Development
 
-Start both backend and frontend:
-
 ```bash
-# Start backend + frontend (database must be running)
+# Start the app (database must be running)
 npm run dev
 
 # Or start everything including postgres database (Docker)
@@ -128,7 +119,7 @@ npm run db:studio      # Open Drizzle Studio
 #### Code Quality Commands
 
 ```bash
-npm run lint           # Lint both workspaces
+npm run lint           # Lint with ESLint
 npm run lint:fix       # Auto-fix lint issues
 npm run format         # Format with Prettier
 npm run format:check   # Check formatting
@@ -136,7 +127,7 @@ npm run format:check   # Check formatting
 
 ### Docker Deployment
 
-**Production** (full stack — postgres, backend, frontend):
+**Production** (postgres + Next.js app):
 
 ```bash
 docker compose up
@@ -150,20 +141,19 @@ docker compose -f docker-compose.dev.yml up -d
 
 ### Access the Application
 
-- Frontend: http://localhost:3000
-- Backend Health: http://localhost:3001/health
-- Chat API: POST http://localhost:3001/api/chat (SSE stream)
+- App: http://localhost:3000
+- Health: http://localhost:3000/api/health
 
 ## Authentication
 
-Uses [better-auth](https://www.better-auth.com/) with email/password authentication.
+Uses [better-auth](https://www.better-auth.com/) with email/password authentication. Cookie-based sessions (httpOnly, secure, sameSite: lax).
 
 - **Sign up / Sign in** at `/sign-up` and `/sign-in`
-- Session managed via cookies + Bearer tokens
-- All API routes protected by `requireAuth` middleware
-- **Chat API auth:** Each `POST /api/chat` request includes `Authorization: Bearer <token>` header, validated by `requireAuth` middleware
+- `proxy.ts` redirects unauthenticated users to `/sign-in`
+- API route handlers use `getAuthenticatedUserId(request)` for auth
+- Server components/actions use `getSessionUser()` (React `cache()`)
 
-See `CLAUDE.md` for detailed auth architecture.
+See `CLAUDE.md` for detailed architecture.
 
 ## SSE Streaming Protocol
 
@@ -192,80 +182,28 @@ Cancellation: Abort the HTTP request via AbortController.
 
 ## Configuration
 
-### Backend
-
-| Variable             | Default                  | Description                                |
-| -------------------- | ------------------------ | ------------------------------------------ |
-| `PORT`               | 3001                     | Server port                                |
-| `LLM_PROVIDER`       | anthropic                | LLM provider                               |
-| `MODEL_NAME`         | claude-3-5-sonnet-latest | Model name                                 |
-| `MODEL_TEMPERATURE`  | 0.3                      | Temperature                                |
-| `MODEL_MAX_TOKENS`   | 4096                     | Max tokens                                 |
-| `ANTHROPIC_API_KEY`  | -                        | Anthropic API key                          |
-| `WEATHER_API_KEY`    | -                        | Weather API key (optional)                 |
-| `DATABASE_URL`       | -                        | PostgreSQL connection URL                  |
-| `BETTER_AUTH_SECRET` | -                        | Auth secret (`openssl rand -base64 32`)    |
-| `BACKEND_URL`        | http://localhost:3001    | Backend URL (used by better-auth)          |
-| `FRONTEND_URL`       | http://localhost:3000    | Frontend URL (CORS origin)                 |
-| `COOKIE_DOMAIN`      | -                        | Cookie domain (production cross-subdomain) |
-
-### Frontend
-
-| Variable              | Default               | Description     |
-| --------------------- | --------------------- | --------------- |
-| `NEXT_PUBLIC_API_URL` | http://localhost:3001 | Backend API URL |
+| Variable             | Default                    | Description                               |
+| -------------------- | -------------------------- | ----------------------------------------- |
+| `LLM_PROVIDER`       | anthropic                  | LLM provider                              |
+| `MODEL_NAME`         | claude-sonnet-4-5-20250929 | Model name                                |
+| `MODEL_TEMPERATURE`  | 0.3                        | Temperature                               |
+| `MODEL_MAX_TOKENS`   | 4096                       | Max tokens                                |
+| `ANTHROPIC_API_KEY`  | -                          | Anthropic API key                         |
+| `WEATHER_API_KEY`    | -                          | Weather API key (optional)                |
+| `DATABASE_URL`       | -                          | PostgreSQL connection URL                 |
+| `BETTER_AUTH_SECRET` | -                          | Auth secret (`openssl rand -base64 32`)   |
+| `BASE_URL`           | http://localhost:3000      | App URL (set for production)              |
+| `COOKIE_DOMAIN`      | -                          | Cookie domain (optional, cross-subdomain) |
+| `COOKIE_SECURE`      | -                          | Force secure cookies (optional)           |
 
 ## Adding New Providers
 
-1. Create a new provider in `backend/src/providers/`:
-
-   ```typescript
-   import type { LLMProvider, ProviderConfig, StreamCallbacks, ChatMessage } from './types.js';
-
-   export class NewProvider implements LLMProvider {
-     public readonly name = 'new-provider';
-
-     constructor(config: ProviderConfig) {
-       // Initialize
-     }
-
-     async stream(
-       messages: ChatMessage[],
-       callbacks: StreamCallbacks,
-       abortSignal?: AbortSignal
-     ): Promise<void> {
-       // Implement streaming
-     }
-   }
-   ```
-
-2. Register in `backend/src/providers/factory.ts`
-
-3. Update config and environment variables as needed
+1. Create class implementing `LLMProvider` in `lib/server/providers/`
+2. Register in `lib/server/providers/factory.ts`
+3. Add required env vars to config
 
 ## Adding New Tools
 
-1. Define a tool using LangChain's `tool()` helper with Zod schema in `backend/src/tools/`:
-
-   ```typescript
-   import { tool } from '@langchain/core/tools';
-   import { z } from 'zod';
-
-   export const myTool = tool(
-     async ({ param }) => {
-       // Tool implementation
-       return 'result';
-     },
-     {
-       name: 'my_tool',
-       description: 'Description of what the tool does',
-       schema: z.object({
-         param: z.string().describe('Parameter description'),
-       }),
-     }
-   );
-   ```
-
-2. Export from `backend/src/tools/index.ts`
-
+1. Define a tool using LangChain's `tool()` helper with Zod schema in `lib/server/tools/`
+2. Export from `lib/server/tools/index.ts`
 3. Tools are automatically available to the LangChain agent

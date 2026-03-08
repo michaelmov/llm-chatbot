@@ -49,3 +49,7 @@ terraform/terraform.tfvars
 
 # Claude
 .claude/plans/
+
+# SST / OpenNext
+.sst/
+.open-next/

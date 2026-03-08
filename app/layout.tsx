@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'LLM Chatbot',
@@ -18,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <Providers>{children}</Providers>
+          {children}
         </ThemeProvider>
       </body>
     </html>

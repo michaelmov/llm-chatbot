@@ -1,43 +1,28 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useSession } from '@/lib/auth-client';
-import { Spinner } from '@/components/ui/spinner';
+import { redirect } from 'next/navigation';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { getSessionUser } from '@/lib/server/auth-helpers';
+import { conversationService } from '@/lib/server/services';
 import { AppSidebar } from '../components/AppSidebar';
 import { ChatProvider } from './ChatProvider';
-import { ChatContainer } from '../components/ChatContainer';
 
-export default function ChatLayout({ children: _children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const { data: sessionData, isPending } = useSession();
+export default async function ChatLayout({ children }: { children: React.ReactNode }) {
+  const user = await getSessionUser();
+  if (!user) redirect('/sign-in');
 
-  useEffect(() => {
-    if (!isPending && !sessionData) {
-      router.push('/sign-in');
-    }
-  }, [isPending, sessionData, router]);
-
-  if (isPending) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Spinner />
-      </div>
-    );
-  }
-
-  if (!sessionData) {
-    return null;
-  }
+  const conversations = await conversationService.listByUser(user.id);
 
   return (
     <ChatProvider>
       <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <ChatContainer />
-        </SidebarInset>
+        <AppSidebar
+          conversations={conversations.map((c) => ({
+            id: c.id,
+            title: c.title ?? 'Untitled',
+          }))}
+          userName={user.name}
+          userEmail={user.email}
+        />
+        <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
     </ChatProvider>
   );

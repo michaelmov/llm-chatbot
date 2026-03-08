@@ -25,14 +25,13 @@ interface SSEErrorData {
 }
 
 export interface UseChatOptions {
-  sessionToken?: string;
   onStart?: (data: SSEStartData) => void;
   onToken?: (data: SSETokenData) => void;
   onDone?: (data: SSEDoneData) => void;
   onError?: (data: SSEErrorData) => void;
 }
 
-export function useChat({ sessionToken, onStart, onToken, onDone, onError }: UseChatOptions) {
+export function useChat({ onStart, onToken, onDone, onError }: UseChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const callbacksRef = useRef({ onStart, onToken, onDone, onError });
@@ -59,7 +58,6 @@ export function useChat({ sessionToken, onStart, onToken, onDone, onError }: Use
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${sessionToken}`,
           },
           body: JSON.stringify({
             requestId,
@@ -114,7 +112,7 @@ export function useChat({ sessionToken, onStart, onToken, onDone, onError }: Use
         setIsStreaming(false);
       }
     },
-    [sessionToken]
+    []
   );
 
   const cancelStream = useCallback(() => {

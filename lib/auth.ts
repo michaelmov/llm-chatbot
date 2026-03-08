@@ -1,7 +1,6 @@
 import 'server-only';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer } from 'better-auth/plugins';
 import { db } from '@/lib/server/db';
 import { config } from '@/lib/server/config';
 
@@ -13,7 +12,6 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [bearer()],
   advanced: {
     crossSubDomainCookies: {
       enabled: !!config.cookieDomain,

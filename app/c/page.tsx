@@ -1,3 +1,5 @@
+import { ChatContainer } from '../components/ChatContainer';
+
 export default function NewChatPage() {
-  return null;
+  return <ChatContainer initialMessages={[]} conversationTitle="New Conversation" />;
 }

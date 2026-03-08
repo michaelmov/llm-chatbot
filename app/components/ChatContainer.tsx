@@ -24,7 +24,6 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
     streamingConvId,
     streamingMessageId,
     localMessages,
-    addLocalMessage,
     clearLocalMessages,
   } = useChatContext();
 
@@ -46,7 +45,6 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
       }
 
       const userMessage: Message = { id: uuidv4(), role: 'user', content };
-      addLocalMessage(convKey, userMessage);
 
       const requestId = uuidv4();
       const allMessages = [...messages, userMessage];
@@ -56,16 +54,7 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
         conversationId
       );
     },
-    [
-      isStreaming,
-      streamingConvId,
-      convKey,
-      messages,
-      sendChat,
-      addLocalMessage,
-      clearLocalMessages,
-      conversationId,
-    ]
+    [isStreaming, streamingConvId, convKey, messages, sendChat, clearLocalMessages, conversationId]
   );
 
   const handleStop = useCallback(() => {

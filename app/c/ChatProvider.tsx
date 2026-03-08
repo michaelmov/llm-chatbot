@@ -17,7 +17,6 @@ interface ChatContextValue {
   streamingConvId: string | null;
   streamingMessageId: string | null;
   localMessages: Map<string | null, Message[]>;
-  addLocalMessage: (convId: string | null, message: Message) => void;
   clearLocalMessages: (convId: string | null) => void;
 }
 
@@ -178,13 +177,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     onError: handleError,
   });
 
-  const addLocalMessage = useCallback(
-    (convId: string | null, message: Message) => {
-      setMsgsForConv(convId, (prev) => [...prev, message]);
-    },
-    [setMsgsForConv]
-  );
-
   const value = useMemo<ChatContextValue>(
     () => ({
       sendChat,
@@ -193,7 +185,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streamingConvId,
       streamingMessageId,
       localMessages: localMsgsByConvId,
-      addLocalMessage,
       clearLocalMessages: clearMsgsForConv,
     }),
     [
@@ -203,7 +194,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streamingConvId,
       streamingMessageId,
       localMsgsByConvId,
-      addLocalMessage,
       clearMsgsForConv,
     ]
   );

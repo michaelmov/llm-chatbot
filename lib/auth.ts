@@ -5,6 +5,7 @@ import { db } from '@/lib/server/db';
 import { config } from '@/lib/server/config';
 
 export const auth = betterAuth({
+  baseURL: config.baseUrl,
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),

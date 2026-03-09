@@ -18,7 +18,7 @@ A model-agnostic chatbot with SSE streaming, built with Next.js 16 (React 19, Ta
 
 - Node.js >=22.17.0
 - npm
-- Docker (for PostgreSQL)
+- Docker (optional, for local PostgreSQL)
 - Anthropic API key
 - Weather API key (optional, from [weatherapi.com](https://www.weatherapi.com/))
 
@@ -27,7 +27,7 @@ A model-agnostic chatbot with SSE streaming, built with Next.js 16 (React 19, Ta
 ```
 /llm-chatbot
 ├── package.json              # Single package (no workspaces)
-├── docker-compose.yml        # Production stack (postgres + Next.js app)
+├── sst.config.ts             # SST v4 deployment config (AWS Lambda)
 ├── docker-compose.dev.yml    # Dev infrastructure (postgres)
 ├── proxy.ts                  # Auth proxy (redirects unauthenticated users)
 ├── app/
@@ -125,13 +125,30 @@ npm run format         # Format with Prettier
 npm run format:check   # Check formatting
 ```
 
-### Docker Deployment
+### Deployment (AWS SST)
 
-**Production** (postgres + Next.js app):
+This app deploys to AWS using [SST v4](https://sst.dev/) (serverless Next.js on Lambda + CloudFront).
+
+**Set secrets** (stored in AWS SSM Parameter Store):
 
 ```bash
-docker compose up
+npx sst secret set AnthropicApiKey "sk-ant-..."
+npx sst secret set BetterAuthSecret "$(openssl rand -base64 32)"
+npx sst secret set DatabaseUrl "postgresql://user:pass@host:5432/db"
+npx sst secret set WeatherApiKey "..."
+npx sst secret set BaseUrl "https://your-cloudfront-url.cloudfront.net"
 ```
+
+**Deploy to production:**
+
+```bash
+npm run deploy:prod        # Runs migrations + SST deploy
+npm run db:migrate:prod    # Run migrations only (via SST shell)
+```
+
+After the first deploy, capture the printed CloudFront URL, set `BaseUrl`, and redeploy.
+
+### Docker (Development)
 
 **Development infrastructure** (postgres only):
 
@@ -193,8 +210,11 @@ Cancellation: Abort the HTTP request via AbortController.
 | `DATABASE_URL`       | -                          | PostgreSQL connection URL                 |
 | `BETTER_AUTH_SECRET` | -                          | Auth secret (`openssl rand -base64 32`)   |
 | `BASE_URL`           | http://localhost:3000      | App URL (set for production)              |
+| `DATABASE_SSL`       | -                          | Enable SSL for DB connection (optional)   |
 | `COOKIE_DOMAIN`      | -                          | Cookie domain (optional, cross-subdomain) |
 | `COOKIE_SECURE`      | -                          | Force secure cookies (optional)           |
+
+> **Production secrets** (`ANTHROPIC_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `WEATHER_API_KEY`, `BASE_URL`) are managed via AWS SSM Parameter Store through SST. See [Deployment](#deployment-aws-sst) above.
 
 ## Adding New Providers
 

@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="./.sst/platform/config.d.ts" />
 
 export default $config({
@@ -36,6 +37,9 @@ export default $config({
         DATABASE_SSL: 'true',
         COOKIE_SECURE: 'true',
         // COOKIE_DOMAIN: '.example.com',  // Uncomment for cross-subdomain cookies
+      },
+      server: {
+        timeout: '60 seconds',
       },
     });
 

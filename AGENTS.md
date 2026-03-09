@@ -28,6 +28,10 @@ npm run db:generate    # Generate Drizzle migrations
 npm run db:migrate     # Run Drizzle migrations
 npm run db:push        # Push schema directly
 npm run db:studio      # Open Drizzle Studio
+
+# Deployment
+npm run deploy              # Run migrations + SST deploy (production)
+npm run db:migrate:prod     # Run migrations only via SST shell (production)
 ```
 
 **Node.js requirement:** `>=22.17.0`
@@ -132,12 +136,6 @@ Next.js 16 with React 19, Tailwind CSS 4, shadcn/ui components.
 
 ## Docker
 
-**Production** (`docker-compose.yml`) — postgres + single Next.js app:
-
-```bash
-docker compose up
-```
-
 **Development infrastructure** (`docker-compose.dev.yml`) — postgres only:
 
 ```bash
@@ -164,7 +162,7 @@ BASE_URL=https://yourdomain.com
 
 Generate `BETTER_AUTH_SECRET` with: `openssl rand -base64 32`
 
-`BASE_URL` defaults to `http://localhost:3000` for development. Set it to your production domain in Docker/self-hosted environments.
+`BASE_URL` defaults to `http://localhost:3000` for development. Set it to your production domain for deployment.
 
 ## Code Quality
 

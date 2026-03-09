@@ -132,11 +132,11 @@ This app deploys to AWS using [SST v4](https://sst.dev/) (serverless Next.js on 
 **Set secrets** (stored in AWS SSM Parameter Store):
 
 ```bash
-npx sst secret set AnthropicApiKey "sk-ant-..."
-npx sst secret set BetterAuthSecret "$(openssl rand -base64 32)"
-npx sst secret set DatabaseUrl "postgresql://user:pass@host:5432/db"
-npx sst secret set WeatherApiKey "..."
-npx sst secret set BaseUrl "https://your-cloudfront-url.cloudfront.net"
+npx sst secret set AnthropicApiKey "sk-ant-..." --stage production
+npx sst secret set BetterAuthSecret "$(openssl rand -base64 32)" --stage production
+npx sst secret set DatabaseUrl "postgresql://user:pass@host:5432/db" --stage production
+npx sst secret set WeatherApiKey "..." --stage production
+npx sst secret set BaseUrl "https://your-cloudfront-url.cloudfront.net" --stage production
 ```
 
 **Deploy to production:**

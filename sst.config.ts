@@ -13,11 +13,11 @@ export default $config({
   async run() {
     // Secrets are stored in AWS SSM Parameter Store.
     // Set them before deploying:
-    //   npx sst secret set AnthropicApiKey "sk-ant-..."
-    //   npx sst secret set BetterAuthSecret "$(openssl rand -base64 32)"
-    //   npx sst secret set DatabaseUrl "postgresql://user:pass@host:5432/db"
-    //   npx sst secret set WeatherApiKey "..."
-    //   npx sst secret set BaseUrl "https://your-cloudfront-url.cloudfront.net"
+    //   npx sst secret set AnthropicApiKey "sk-ant-..." --stage production
+    //   npx sst secret set BetterAuthSecret "$(openssl rand -base64 32)" --stage production
+    //   npx sst secret set DatabaseUrl "postgresql://user:pass@host:5432/db" --stage production
+    //   npx sst secret set WeatherApiKey "..." --stage production
+    //   npx sst secret set BaseUrl "https://your-cloudfront-url.cloudfront.net" --stage production
     //
     // After first deploy, capture the printed URL and set BaseUrl, then redeploy.
     const anthropicApiKey = new sst.Secret('AnthropicApiKey');
@@ -37,6 +37,14 @@ export default $config({
         DATABASE_SSL: 'true',
         COOKIE_SECURE: 'true',
         // COOKIE_DOMAIN: '.example.com',  // Uncomment for cross-subdomain cookies
+
+        // Secrets — resolved at deploy time from SST secret store.
+        // Needed because OpenNext's Lambda may not receive SST_RESOURCE_* vars.
+        ANTHROPIC_API_KEY: anthropicApiKey.value,
+        BETTER_AUTH_SECRET: betterAuthSecret.value,
+        DATABASE_URL: databaseUrl.value,
+        WEATHER_API_KEY: weatherApiKey.value,
+        BASE_URL: baseUrl.value,
       },
       server: {
         timeout: '60 seconds',

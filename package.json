@@ -19,7 +19,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:migrate:prod": "sst shell -- npm run db:migrate",
+    "db:migrate:prod": "DATABASE_URL=$(sst secret list --stage production | grep '^DatabaseUrl=' | cut -d'=' -f2-) npm run db:migrate",
     "deploy:prod": "npm run db:migrate:prod && sst deploy --stage production"
   },
   "dependencies": {
@@ -60,6 +60,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@opennextjs/aws": "^3.9.16",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9",

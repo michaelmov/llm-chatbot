@@ -4,10 +4,35 @@
 /* deno-fmt-ignore-file */
 /* biome-ignore-all lint: auto-generated */
 
-declare module 'sst' {
-  export interface Resource {}
+declare module "sst" {
+  export interface Resource {
+    "AnthropicApiKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "BaseUrl": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "BetterAuthSecret": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "DatabaseUrl": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "LlmChatbot": {
+      "type": "sst.aws.Nextjs"
+      "url": string
+    }
+    "WeatherApiKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+  }
 }
 /// <reference path="sst-env.d.ts" />
 
-import 'sst';
-export {};
+import "sst"
+export {}

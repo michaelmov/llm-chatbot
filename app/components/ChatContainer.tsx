@@ -23,26 +23,25 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
     sendChat,
     cancelStream,
     isStreaming,
-    streamingConvId,
+    pendingConvId,
     streamingMessageId,
-    localMessages,
-    clearLocalMessages,
+    pendingMessages,
+    clearPendingMessages,
   } = useChatContext();
 
   const convKey = conversationId ?? null;
   const messages = useMemo(() => {
-    const local = localMessages.get(convKey) ?? [];
+    const local = pendingConvId === convKey ? pendingMessages : [];
     return [...initialMessages, ...local];
-  }, [initialMessages, localMessages, convKey]);
+  }, [initialMessages, pendingMessages, pendingConvId, convKey]);
 
-  // Is the currently viewed conversation the one being streamed?
-  const isCurrentConvStreaming = isStreaming && streamingConvId === convKey;
+  const isCurrentConvStreaming = isStreaming && pendingConvId === convKey;
 
   // Once server data refreshes (initialMessages updates) and streaming is done,
-  // clear stale local messages before paint to avoid one-frame duplication.
+  // clear stale pending messages before paint to avoid one-frame duplication.
   useLayoutEffect(() => {
-    if (!isCurrentConvStreaming && localMessages.has(convKey)) {
-      clearLocalMessages(convKey);
+    if (!isCurrentConvStreaming && pendingConvId === convKey && pendingMessages.length > 0) {
+      clearPendingMessages();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when server data refreshes
   }, [initialMessages]);
@@ -51,11 +50,6 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
 
   const handleSend = useCallback(
     (content: string) => {
-      // Abandon any stream belonging to a different conversation
-      if (isStreaming && streamingConvId !== null && streamingConvId !== convKey) {
-        clearLocalMessages(streamingConvId);
-      }
-
       const userMessage: Message = { id: uuidv4(), role: 'user', content };
 
       const requestId = uuidv4();
@@ -66,7 +60,7 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
         conversationId
       );
     },
-    [isStreaming, streamingConvId, convKey, messages, sendChat, clearLocalMessages, conversationId]
+    [messages, sendChat, conversationId]
   );
 
   const handleStop = useCallback(() => {

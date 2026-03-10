@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     'build/**',
     'next-env.d.ts',
     'drizzle/**',
+    '.sst/**',
+    '.open-next/**',
+    'sst-env.d.ts',
   ]),
   // Disable ESLint rules that conflict with Prettier
   eslintConfigPrettier,

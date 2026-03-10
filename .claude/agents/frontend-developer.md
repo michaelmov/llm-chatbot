@@ -1,7 +1,8 @@
 ---
 name: frontend-developer
-description: "Build Next.js applications with React components, shadcn/ui, and Tailwind CSS. Expert in SSR/SSG, app router, and modern frontend patterns. Use PROACTIVELY for Next.js development, UI component creation, or frontend architecture.\\ncategory: development-architecture"
-model: opus
+description: Build Next.js applications with React components, shadcn/ui, and Tailwind CSS. Expert in SSR/SSG, app router, and modern frontend patterns. Use PROACTIVELY for Next.js development, UI component creation, or frontend architecture.
+tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch
+model: inherit
 color: blue
 ---
 

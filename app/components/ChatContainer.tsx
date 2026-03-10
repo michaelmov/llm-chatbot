@@ -6,6 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useChatContext } from '../c/ChatProvider';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import type { Message } from './MessageBubble';
 
 interface ChatContainerProps {
@@ -63,11 +65,11 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
 
   return (
     <div className="flex h-full max-h-screen w-full flex-col bg-background">
-      <div className="border-b border-border">
-        <div className="mx-auto w-full max-w-2xl px-4 py-4">
-          <h1 className="text-lg font-bold text-center">{conversationTitle}</h1>
-        </div>
-      </div>
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+        <SidebarTrigger />
+        <Separator orientation="vertical" className="mr-2 h-4!" />
+        <h1 className="truncate text-lg font-bold">{conversationTitle}</h1>
+      </header>
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto h-full max-w-2xl">
           <MessageList

@@ -104,8 +104,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const convId = data.conversationId ?? null;
       setStreamingMsg(assistantId);
       setStreamingConv(convId);
-      setMsgsForConv(convId, (prev) => [
-        ...prev,
+      setMsgsForConv(convId, () => [
         { id: assistantId, role: 'assistant', content: '' },
       ]);
 
@@ -145,14 +144,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         );
       }
       resetStreamingState();
-
-      // Refresh server data — sidebar + page re-fetch from DB
       router.refresh();
-
-      // Clear local messages for this conversation — DB data is now fresh
-      clearMsgsForConv(convId);
     },
-    [setMsgsForConv, resetStreamingState, clearMsgsForConv, router]
+    [setMsgsForConv, resetStreamingState, router]
   );
 
   const handleError = useCallback(

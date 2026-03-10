@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useLayoutEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { useChatContext } from '../c/ChatProvider';
@@ -37,6 +37,16 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
 
   // Is the currently viewed conversation the one being streamed?
   const isCurrentConvStreaming = isStreaming && streamingConvId === convKey;
+
+  // Once server data refreshes (initialMessages updates) and streaming is done,
+  // clear stale local messages before paint to avoid one-frame duplication.
+  useLayoutEffect(() => {
+    if (!isCurrentConvStreaming && localMessages.has(convKey)) {
+      clearLocalMessages(convKey);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when server data refreshes
+  }, [initialMessages]);
+
   const currentStreamingMessageId = isCurrentConvStreaming ? streamingMessageId : null;
 
   const handleSend = useCallback(

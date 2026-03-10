@@ -31,6 +31,9 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 
+# Next.js
+next-env.d.ts
+
 # Testing
 coverage/
 

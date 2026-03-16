@@ -27,11 +27,23 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
     streamingMessageId,
     pendingMessages,
     clearPendingMessages,
+    addPendingUserMessage,
   } = useChatContext();
 
   const convKey = conversationId ?? null;
   const messages = useMemo(() => {
-    const local = pendingConvId === convKey ? pendingMessages : [];
+    let local = pendingConvId === convKey ? pendingMessages : [];
+    if (local.length > 0) {
+      const lastInitial = initialMessages.at(-1);
+      const pendingUser = local.find((m) => m.role === 'user');
+      if (
+        pendingUser &&
+        lastInitial?.role === 'user' &&
+        lastInitial.content === pendingUser.content
+      ) {
+        local = local.filter((m) => m.role !== 'user');
+      }
+    }
     return [...initialMessages, ...local];
   }, [initialMessages, pendingMessages, pendingConvId, convKey]);
 
@@ -52,6 +64,8 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
     (content: string) => {
       const userMessage: Message = { id: uuidv4(), role: 'user', content };
 
+      addPendingUserMessage(userMessage, conversationId);
+
       const requestId = uuidv4();
       const allMessages = [...messages, userMessage];
       sendChat(
@@ -60,7 +74,7 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
         conversationId
       );
     },
-    [messages, sendChat, conversationId]
+    [messages, sendChat, conversationId, addPendingUserMessage]
   );
 
   const handleStop = useCallback(() => {

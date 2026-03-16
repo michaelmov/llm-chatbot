@@ -18,6 +18,7 @@ interface ChatContextValue {
   streamingMessageId: string | null;
   pendingMessages: Message[];
   clearPendingMessages: () => void;
+  addPendingUserMessage: (message: Message, conversationId?: string) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -49,18 +50,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setPendingConvId(null);
   }, []);
 
+  const addPendingUserMessage = useCallback((message: Message, convId?: string) => {
+    setPendingConvId(convId ?? null);
+    setPendingMessages((prev) => [...prev, message]);
+  }, []);
+
   const handleStart = useCallback(
     (data: { requestId: string; conversationId: string }) => {
       const assistantId = uuidv4();
       setStreamingMsg(assistantId);
       setPendingConvId(data.conversationId ?? null);
-      setPendingMessages([{ id: assistantId, role: 'assistant', content: '' }]);
+      setPendingMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
 
-      if (data.conversationId) {
-        if (!conversationId) {
-          router.replace(`/c/${data.conversationId}`);
-        }
-        router.refresh();
+      if (data.conversationId && !conversationId) {
+        router.replace(`/c/${data.conversationId}`);
       }
     },
     [conversationId, router, setStreamingMsg]
@@ -118,6 +121,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streamingMessageId,
       pendingMessages,
       clearPendingMessages,
+      addPendingUserMessage,
     }),
     [
       sendChat,
@@ -127,6 +131,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       streamingMessageId,
       pendingMessages,
       clearPendingMessages,
+      addPendingUserMessage,
     ]
   );
 

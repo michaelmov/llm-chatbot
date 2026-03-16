@@ -86,6 +86,7 @@ Client sends `POST /api/chat` with JSON body `{ requestId, messages, conversatio
 | `start` | `{ requestId, conversationId }`       | Stream started       |
 | `token` | `{ token }`                           | Individual LLM token |
 | `done`  | `{ requestId, text, conversationId }` | Streaming complete   |
+| `title` | `{ conversationId, title }`           | Auto-generated title |
 | `error` | `{ error, requestId? }`               | Error occurred       |
 
 SSE in Route Handlers uses `new ReadableStream()` with `controller.enqueue()` for events and `request.signal` for abort detection.
@@ -94,7 +95,7 @@ SSE in Route Handlers uses `new ReadableStream()` with `controller.enqueue()` fo
 
 - `config.ts` — Environment-based configuration
 - `db/` — Drizzle ORM client and schema
-- `services/` — conversation.service.ts, message.service.ts
+- `services/` — conversation.service.ts, message.service.ts, title.service.ts
 - `providers/` — LLMProvider interface + Anthropic implementation via LangChain
 - `tools/` — LangChain tools (weather, weather forecast, datetime)
 - `validation/chat.ts` — Chat request validation (max 50,000 chars)
@@ -153,6 +154,7 @@ MODEL_TEMPERATURE=0.3
 MODEL_MAX_TOKENS=4096
 ANTHROPIC_API_KEY=your-api-key-here
 WEATHER_API_KEY=your-weather-api-key-here
+TITLE_MODEL_NAME=claude-haiku-4-5-20251001
 DATABASE_URL=postgresql://chatbot:chatbot_dev@localhost:5432/chatbot
 BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
 BASE_URL=https://yourdomain.com

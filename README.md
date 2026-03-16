@@ -6,7 +6,7 @@ A model-agnostic chatbot with SSE streaming, built with Next.js 16 (React 19, Ta
 
 - Real-time token streaming via SSE (Server-Sent Events)
 - User authentication (email/password via better-auth, cookie-based)
-- Conversation management (create, list, delete via server actions)
+- Conversation management (create, list, delete via server actions) with auto-generated titles
 - Model-agnostic architecture (currently supports Anthropic Claude)
 - LangChain-based agent with tool calling support
 - Built-in tools: weather (current + 5-day forecast), date/time
@@ -195,6 +195,7 @@ Cancellation: Abort the HTTP request via AbortController.
 | `start` | `{ requestId, conversationId }`       | Stream started     |
 | `token` | `{ token }`                           | Individual token   |
 | `done`  | `{ requestId, text, conversationId }` | Streaming complete |
+| `title` | `{ conversationId, title }`           | Auto-generated title (new conversations only) |
 | `error` | `{ error, requestId? }`               | Error occurred     |
 
 ## Configuration
@@ -206,6 +207,7 @@ Cancellation: Abort the HTTP request via AbortController.
 | `MODEL_TEMPERATURE`  | 0.3                        | Temperature                               |
 | `MODEL_MAX_TOKENS`   | 4096                       | Max tokens                                |
 | `ANTHROPIC_API_KEY`  | -                          | Anthropic API key                         |
+| `TITLE_MODEL_NAME`   | claude-haiku-4-5-20251001  | Model for auto-generating titles          |
 | `WEATHER_API_KEY`    | -                          | Weather API key (optional)                |
 | `DATABASE_URL`       | -                          | PostgreSQL connection URL                 |
 | `BETTER_AUTH_SECRET` | -                          | Auth secret (`openssl rand -base64 32`)   |

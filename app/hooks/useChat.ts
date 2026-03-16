@@ -24,19 +24,25 @@ interface SSEErrorData {
   requestId?: string;
 }
 
+interface SSETitleData {
+  conversationId: string;
+  title: string;
+}
+
 export interface UseChatOptions {
   onStart?: (data: SSEStartData) => void;
   onToken?: (data: SSETokenData) => void;
   onDone?: (data: SSEDoneData) => void;
   onError?: (data: SSEErrorData) => void;
+  onTitle?: (data: SSETitleData) => void;
 }
 
-export function useChat({ onStart, onToken, onDone, onError }: UseChatOptions) {
+export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const callbacksRef = useRef({ onStart, onToken, onDone, onError });
+  const callbacksRef = useRef({ onStart, onToken, onDone, onError, onTitle });
   useEffect(() => {
-    callbacksRef.current = { onStart, onToken, onDone, onError };
+    callbacksRef.current = { onStart, onToken, onDone, onError, onTitle };
   });
 
   const sendChat = useCallback(
@@ -90,6 +96,9 @@ export function useChat({ onStart, onToken, onDone, onError }: UseChatOptions) {
                   case 'done':
                     callbacksRef.current.onDone?.(parsed);
                     setIsStreaming(false);
+                    break;
+                  case 'title':
+                    callbacksRef.current.onTitle?.(parsed);
                     break;
                   case 'error':
                     callbacksRef.current.onError?.(parsed);

@@ -3,7 +3,7 @@ import { createProvider } from '@/lib/server/providers/factory';
 import { logger } from '@/lib/server/logger';
 import { validateChatRequest } from '@/lib/server/validation/chat';
 import type { ChatMessage } from '@/lib/server/providers/types';
-import { conversationService, messageService } from '@/lib/server/services';
+import { conversationService, messageService, generateTitle } from '@/lib/server/services';
 import { getAuthenticatedUserId, unauthorizedResponse } from '@/lib/server/auth-helpers';
 
 export async function POST(request: NextRequest) {
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { requestId, messages, conversationId } = result.data!;
+  const isNewConversation = !conversationId;
 
   const encoder = new TextEncoder();
 
@@ -106,8 +107,6 @@ export async function POST(request: NextRequest) {
             },
             onComplete: async (text) => {
               sendEvent('done', { requestId, text, conversationId: resolvedConversationId });
-              controller.close();
-              closed = true;
 
               logger.info('Chat request completed', {
                 requestId,
@@ -128,6 +127,25 @@ export async function POST(request: NextRequest) {
                   error: error instanceof Error ? error.message : error,
                 });
               }
+
+              if (isNewConversation) {
+                try {
+                  const userMessage = messages[messages.length - 1]?.content || '';
+                  const title = await generateTitle(userMessage, text);
+                  if (title) {
+                    await conversationService.updateTitle(resolvedConversationId, title);
+                    sendEvent('title', { conversationId: resolvedConversationId, title });
+                  }
+                } catch (error) {
+                  logger.error('Failed to generate/persist title', {
+                    conversationId: resolvedConversationId,
+                    error: error instanceof Error ? error.message : error,
+                  });
+                }
+              }
+
+              controller.close();
+              closed = true;
             },
             onError: (error) => {
               logger.error('Chat request failed', {

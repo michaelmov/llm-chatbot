@@ -5,6 +5,11 @@ export const config = {
     temperature: parseFloat(process.env.MODEL_TEMPERATURE || '0.3'),
     maxTokens: parseInt(process.env.MODEL_MAX_TOKENS || '4096', 10),
   },
+  titleModel: {
+    name: process.env.TITLE_MODEL_NAME || 'claude-haiku-4-5-20251001',
+    maxTokens: 60,
+    temperature: 0.3,
+  },
   provider: process.env.LLM_PROVIDER || 'anthropic',
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',

@@ -105,11 +105,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [setStreamingMsg]
   );
 
+  const handleTitle = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
   const { sendChat, cancelStream, isStreaming } = useChat({
     onStart: handleStart,
     onToken: handleToken,
     onDone: handleDone,
     onError: handleError,
+    onTitle: handleTitle,
   });
 
   const value = useMemo<ChatContextValue>(

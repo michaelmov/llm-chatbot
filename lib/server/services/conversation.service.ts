@@ -4,11 +4,9 @@ import { conversations, messages } from '../db/schema';
 
 export const conversationService = {
   async create(userId: string, title?: string) {
-    const defaultTitle = `New Conversation - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-
     const [conversation] = await db
       .insert(conversations)
-      .values({ userId, title: title ?? defaultTitle })
+      .values({ userId, title: title ?? 'New Conversation' })
       .returning();
     return conversation;
   },
@@ -55,5 +53,9 @@ export const conversationService = {
       .update(conversations)
       .set({ updatedAt: sql`now()` })
       .where(eq(conversations.id, conversationId));
+  },
+
+  async updateTitle(conversationId: string, title: string) {
+    await db.update(conversations).set({ title }).where(eq(conversations.id, conversationId));
   },
 };

@@ -32,6 +32,7 @@ export default $config({
         // Non-secret config — override per stage as needed
         LLM_PROVIDER: 'anthropic',
         MODEL_NAME: 'claude-sonnet-4-5-20250929',
+        TITLE_MODEL_NAME: 'claude-haiku-4-5-20251001',
         MODEL_TEMPERATURE: '0.3',
         MODEL_MAX_TOKENS: '4096',
         DATABASE_SSL: 'true',

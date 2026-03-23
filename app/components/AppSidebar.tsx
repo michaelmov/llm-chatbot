@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageSquarePlus, LogOut, Trash } from 'lucide-react';
+import { MessageSquarePlus, LogOut, Trash, Settings } from 'lucide-react';
 import { signOut } from '@/lib/auth-client';
-import { ModeToggle } from '@/components/mode-toggle';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -30,6 +29,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { deleteConversation } from '../c/actions';
+import { SettingsModal } from './SettingsModal';
 import { cn } from '@/lib/utils';
 
 interface SidebarConversation {
@@ -49,6 +49,7 @@ export function AppSidebar({ conversations, userName, userEmail }: AppSidebarPro
   const activeConversationId = params?.conversationId as string | undefined;
   const { setOpenMobile } = useSidebar();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -127,13 +128,22 @@ export function AppSidebar({ conversations, userName, userEmail }: AppSidebarPro
             <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
           </div>
           <div className="flex items-center gap-1">
-            <ModeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </SidebarFooter>
+
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
 
       <AlertDialog open={!!pendingDeleteId} onOpenChange={() => setPendingDeleteId(null)}>
         <AlertDialogContent>

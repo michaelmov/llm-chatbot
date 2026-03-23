@@ -56,11 +56,11 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@opennextjs/aws": "^3.9.16",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@opennextjs/aws": "^3.9.16",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9",

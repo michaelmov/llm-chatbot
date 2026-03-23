@@ -100,10 +100,16 @@ export function AppSidebar({ conversations, userName, userEmail }: AppSidebarPro
                 </Link>
               </SidebarMenuButton>
               <SidebarMenuAction
-                className={cn('cursor-pointer')}
+                className={cn(
+                  'cursor-pointer',
+                  '[@media(hover:hover)]:opacity-0',
+                  '[@media(hover:hover)]:group-hover/menu-item:opacity-100',
+                  'group-focus-within/menu-item:opacity-100',
+                  'data-[state=open]:opacity-100',
+                  'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground',
+                )}
                 title="Delete Conversation"
                 onClick={() => setPendingDeleteId(conversation.id)}
-                showOnHover
               >
                 <Trash className="h-5 w-5" />
               </SidebarMenuAction>

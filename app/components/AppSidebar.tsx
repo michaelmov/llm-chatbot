@@ -27,6 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { deleteConversation } from '../c/actions';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ export function AppSidebar({ conversations, userName, userEmail }: AppSidebarPro
   const router = useRouter();
   const params = useParams();
   const activeConversationId = params?.conversationId as string | undefined;
+  const { setOpenMobile } = useSidebar();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const handleSignOut = async () => {
@@ -95,7 +97,7 @@ export function AppSidebar({ conversations, userName, userEmail }: AppSidebarPro
                 isActive={activeConversationId === conversation.id}
                 tooltip={conversation.title}
               >
-                <Link href={`/c/${conversation.id}`}>
+                <Link href={`/c/${conversation.id}`} onClick={() => setOpenMobile(false)}>
                   <span className="truncate">{conversation.title}</span>
                 </Link>
               </SidebarMenuButton>
@@ -106,7 +108,7 @@ export function AppSidebar({ conversations, userName, userEmail }: AppSidebarPro
                   '[@media(hover:hover)]:group-hover/menu-item:opacity-100',
                   'group-focus-within/menu-item:opacity-100',
                   'data-[state=open]:opacity-100',
-                  'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground',
+                  'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground'
                 )}
                 title="Delete Conversation"
                 onClick={() => setPendingDeleteId(conversation.id)}

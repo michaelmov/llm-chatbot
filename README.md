@@ -190,13 +190,13 @@ Cancellation: Abort the HTTP request via AbortController.
 
 ### Server SSE Events
 
-| Event   | Payload                               | Description        |
-| ------- | ------------------------------------- | ------------------ |
-| `start` | `{ requestId, conversationId }`       | Stream started     |
-| `token` | `{ token }`                           | Individual token   |
-| `done`  | `{ requestId, text, conversationId }` | Streaming complete |
+| Event   | Payload                               | Description                                   |
+| ------- | ------------------------------------- | --------------------------------------------- |
+| `start` | `{ requestId, conversationId }`       | Stream started                                |
+| `token` | `{ token }`                           | Individual token                              |
+| `done`  | `{ requestId, text, conversationId }` | Streaming complete                            |
 | `title` | `{ conversationId, title }`           | Auto-generated title (new conversations only) |
-| `error` | `{ error, requestId? }`               | Error occurred     |
+| `error` | `{ error, requestId? }`               | Error occurred                                |
 
 ## Configuration
 

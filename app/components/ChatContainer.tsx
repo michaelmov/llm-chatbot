@@ -82,7 +82,7 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
   }, [cancelStream]);
 
   return (
-    <div className="flex h-full max-h-screen w-full flex-col bg-background">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background">
       <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
         <SidebarTrigger />
         <Separator orientation="vertical" className="mr-2 h-4!" />

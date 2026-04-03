@@ -35,6 +35,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [showKey, setShowKey] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [confirmingRemove, setConfirmingRemove] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -46,6 +47,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       setShowKey(false);
       setError(null);
       setIsLoading(false);
+      setConfirmingRemove(false);
 
       fetch('/api/settings/api-key', { credentials: 'include' })
         .then((res) => res.json())
@@ -161,15 +163,35 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-green-500" />
               <span className="text-sm">API key saved</span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isLoading}
-                onClick={handleRemove}
-                className="ml-auto text-destructive hover:text-destructive"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Remove'}
-              </Button>
+              {confirmingRemove ? (
+                <div className="ml-auto flex items-center gap-1">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={handleRemove}
+                  >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm?'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={() => setConfirmingRemove(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmingRemove(true)}
+                  className="ml-auto text-destructive hover:text-destructive"
+                >
+                  Remove
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

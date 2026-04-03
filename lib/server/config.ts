@@ -11,9 +11,6 @@ export const config = {
     temperature: 0.3,
   },
   provider: process.env.LLM_PROVIDER || 'anthropic',
-  anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY || '',
-  },
   weather: {
     apiKey: process.env.WEATHER_API_KEY || '',
     baseUrl: 'https://api.weatherapi.com/v1',

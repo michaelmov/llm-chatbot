@@ -2,8 +2,8 @@ import { config } from '../config';
 import { AnthropicProvider } from './anthropic';
 import type { LLMProvider } from './types';
 
-export function createProvider(providerName?: string): LLMProvider {
-  const name = providerName || config.provider;
+export function createProvider(apiKey: string): LLMProvider {
+  const name = config.provider;
 
   switch (name) {
     case 'anthropic':
@@ -11,7 +11,7 @@ export function createProvider(providerName?: string): LLMProvider {
         modelName: config.model.name,
         temperature: config.model.temperature,
         maxTokens: config.model.maxTokens,
-        apiKey: config.anthropic.apiKey,
+        apiKey,
       });
     default:
       throw new Error(`Unknown provider: ${name}`);

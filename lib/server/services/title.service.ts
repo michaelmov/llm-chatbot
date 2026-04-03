@@ -17,14 +17,15 @@ function truncate(text: string): string {
 
 export async function generateTitle(
   userMessage: string,
-  assistantMessage: string
+  assistantMessage: string,
+  apiKey: string
 ): Promise<string> {
   try {
     const model = new ChatAnthropic({
       modelName: config.titleModel.name,
       maxTokens: config.titleModel.maxTokens,
       temperature: config.titleModel.temperature,
-      anthropicApiKey: config.anthropic.apiKey,
+      anthropicApiKey: apiKey,
     });
 
     const response = await model.invoke([

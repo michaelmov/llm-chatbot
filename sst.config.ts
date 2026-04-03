@@ -13,21 +13,20 @@ export default $config({
   async run() {
     // Secrets are stored in AWS SSM Parameter Store.
     // Set them before deploying:
-    //   npx sst secret set AnthropicApiKey "sk-ant-..." --stage production
     //   npx sst secret set BetterAuthSecret "$(openssl rand -base64 32)" --stage production
     //   npx sst secret set DatabaseUrl "postgresql://user:pass@host:5432/db" --stage production
     //   npx sst secret set WeatherApiKey "..." --stage production
     //   npx sst secret set BaseUrl "https://your-cloudfront-url.cloudfront.net" --stage production
     //
     // After first deploy, capture the printed URL and set BaseUrl, then redeploy.
-    const anthropicApiKey = new sst.Secret('AnthropicApiKey');
+    // Note: Anthropic API keys are stored per-user in the database (encrypted).
     const betterAuthSecret = new sst.Secret('BetterAuthSecret');
     const databaseUrl = new sst.Secret('DatabaseUrl');
     const weatherApiKey = new sst.Secret('WeatherApiKey');
     const baseUrl = new sst.Secret('BaseUrl');
 
     const web = new sst.aws.Nextjs('LlmChatbot', {
-      link: [anthropicApiKey, betterAuthSecret, databaseUrl, weatherApiKey, baseUrl],
+      link: [betterAuthSecret, databaseUrl, weatherApiKey, baseUrl],
       environment: {
         // Non-secret config — override per stage as needed
         LLM_PROVIDER: 'anthropic',
@@ -41,7 +40,6 @@ export default $config({
 
         // Secrets — resolved at deploy time from SST secret store.
         // Needed because OpenNext's Lambda may not receive SST_RESOURCE_* vars.
-        ANTHROPIC_API_KEY: anthropicApiKey.value,
         BETTER_AUTH_SECRET: betterAuthSecret.value,
         DATABASE_URL: databaseUrl.value,
         WEATHER_API_KEY: weatherApiKey.value,

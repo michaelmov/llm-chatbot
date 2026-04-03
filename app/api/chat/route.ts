@@ -3,7 +3,12 @@ import { createProvider } from '@/lib/server/providers/factory';
 import { logger } from '@/lib/server/logger';
 import { validateChatRequest } from '@/lib/server/validation/chat';
 import type { ChatMessage } from '@/lib/server/providers/types';
-import { conversationService, messageService, generateTitle } from '@/lib/server/services';
+import {
+  conversationService,
+  messageService,
+  generateTitle,
+  apiKeyService,
+} from '@/lib/server/services';
 import { getAuthenticatedUserId, unauthorizedResponse } from '@/lib/server/auth-helpers';
 
 export async function POST(request: NextRequest) {
@@ -95,9 +100,19 @@ export async function POST(request: NextRequest) {
           messageCount: llmMessages.length,
         });
 
+        const apiKey = await apiKeyService.getDecryptedKey(userId);
+        if (!apiKey) {
+          sendEvent('error', {
+            error: 'No API key configured. Please add your Anthropic API key in Settings.',
+            requestId,
+          });
+          controller.close();
+          return;
+        }
+
         sendEvent('start', { requestId, conversationId: resolvedConversationId });
 
-        const provider = createProvider();
+        const provider = createProvider(apiKey);
 
         await provider.stream(
           llmMessages,
@@ -131,7 +146,7 @@ export async function POST(request: NextRequest) {
               if (isNewConversation) {
                 try {
                   const userMessage = messages[messages.length - 1]?.content || '';
-                  const title = await generateTitle(userMessage, text);
+                  const title = await generateTitle(userMessage, text, apiKey);
                   if (title) {
                     await conversationService.updateTitle(resolvedConversationId, title);
                     sendEvent('title', { conversationId: resolvedConversationId, title });

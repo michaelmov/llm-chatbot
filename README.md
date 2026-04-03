@@ -77,13 +77,14 @@ A model-agnostic chatbot with SSE streaming, built with Next.js 16 (React 19, Ta
    cp .env.example .env.local
    ```
 
-   Edit `.env.local` and add your API keys and auth secret:
+   Edit `.env.local` and add your auth secret:
 
    ```
-   ANTHROPIC_API_KEY=your-api-key-here
    WEATHER_API_KEY=your-weather-api-key-here  # Optional, for weather tools
    BETTER_AUTH_SECRET=$(openssl rand -base64 32)
    ```
+
+   > **Note:** Anthropic API keys are provided per-user via the Settings UI (stored encrypted in the database).
 
 3. **Start the database:**
 
@@ -206,7 +207,6 @@ Cancellation: Abort the HTTP request via AbortController.
 | `MODEL_NAME`         | claude-sonnet-4-5-20250929 | Model name                                |
 | `MODEL_TEMPERATURE`  | 0.3                        | Temperature                               |
 | `MODEL_MAX_TOKENS`   | 4096                       | Max tokens                                |
-| `ANTHROPIC_API_KEY`  | -                          | Anthropic API key                         |
 | `TITLE_MODEL_NAME`   | claude-haiku-4-5-20251001  | Model for auto-generating titles          |
 | `WEATHER_API_KEY`    | -                          | Weather API key (optional)                |
 | `DATABASE_URL`       | -                          | PostgreSQL connection URL                 |
@@ -216,7 +216,7 @@ Cancellation: Abort the HTTP request via AbortController.
 | `COOKIE_DOMAIN`      | -                          | Cookie domain (optional, cross-subdomain) |
 | `COOKIE_SECURE`      | -                          | Force secure cookies (optional)           |
 
-> **Production secrets** (`ANTHROPIC_API_KEY`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `WEATHER_API_KEY`, `BASE_URL`) are managed via AWS SSM Parameter Store through SST. See [Deployment](#deployment-aws-sst) above.
+> **Production secrets** (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `WEATHER_API_KEY`, `BASE_URL`) are managed via AWS SSM Parameter Store through SST. See [Deployment](#deployment-aws-sst) above. Anthropic API keys are stored per-user in the database (encrypted with `BETTER_AUTH_SECRET`).
 
 ## Adding New Providers
 

@@ -43,7 +43,7 @@ Single Next.js 16 application with API Route Handlers for chat streaming and ser
 ### Directory Structure
 
 - `app/` — Next.js app router (pages, API routes, components, hooks)
-- `app/api/` — API Route Handlers (chat, auth, health)
+- `app/api/` — API Route Handlers (chat, auth, health, settings)
 - `app/c/` — Chat route group (`ChatProvider.tsx`, `actions.ts`, layouts, pages)
 - `app/components/` — Chat UI components (ChatContainer, MessageList, MessageBubble, ChatInput, AppSidebar, AuthCard)
 - `app/components/llm-output/` — Streaming markdown rendering with `@llm-ui/*` + Shiki v3
@@ -68,6 +68,14 @@ Route handlers use `getAuthenticatedUserId(request)` from `lib/server/auth-helpe
 **Auth** (`app/api/auth/[...all]/route.ts`): better-auth catch-all handler via `toNextJsHandler(auth)`.
 
 **Health** (`app/api/health/route.ts`): `GET /api/health` returns status, provider, model.
+
+**Settings** (`app/api/settings/api-key/route.ts`):
+
+| Method   | Path                    | Description                        |
+| -------- | ----------------------- | ---------------------------------- |
+| `GET`    | `/api/settings/api-key` | Check if user has a stored API key |
+| `PUT`    | `/api/settings/api-key` | Store or update user's API key     |
+| `DELETE` | `/api/settings/api-key` | Remove user's stored API key       |
 
 ### Server Actions
 
@@ -95,7 +103,8 @@ SSE in Route Handlers uses `new ReadableStream()` with `controller.enqueue()` fo
 
 - `config.ts` — Environment-based configuration
 - `db/` — Drizzle ORM client and schema
-- `services/` — conversation.service.ts, message.service.ts, title.service.ts
+- `crypto.ts` — AES-256-GCM encryption for user API keys (derives key from `BETTER_AUTH_SECRET`)
+- `services/` — conversation.service.ts, message.service.ts, title.service.ts, api-key.service.ts
 - `providers/` — LLMProvider interface + Anthropic implementation via LangChain
 - `tools/` — LangChain tools (weather, weather forecast, datetime)
 - `validation/chat.ts` — Chat request validation (max 50,000 chars)
@@ -116,6 +125,8 @@ Uses [better-auth](https://www.better-auth.com/) with email/password. Cookie-bas
 PostgreSQL 17 with Drizzle ORM and postgres.js driver. Schema in `lib/server/db/schema.ts`. Migrations in `drizzle/`, config in `drizzle.config.ts`.
 
 **Chat tables:** `conversations`, `messages`
+
+**Settings tables:** `user_api_keys` (encrypted per-user API keys)
 
 **Better-auth managed tables** (do not modify manually): `user`, `session`, `account`, `verification`
 
@@ -152,7 +163,6 @@ LLM_PROVIDER=anthropic
 MODEL_NAME=claude-sonnet-4-5-20250929
 MODEL_TEMPERATURE=0.3
 MODEL_MAX_TOKENS=4096
-ANTHROPIC_API_KEY=your-api-key-here
 WEATHER_API_KEY=your-weather-api-key-here
 TITLE_MODEL_NAME=claude-haiku-4-5-20251001
 DATABASE_URL=postgresql://chatbot:chatbot_dev@localhost:5432/chatbot
@@ -162,7 +172,9 @@ BASE_URL=https://yourdomain.com
 # COOKIE_SECURE=true            (optional, defaults based on environment)
 ```
 
-Generate `BETTER_AUTH_SECRET` with: `openssl rand -base64 32`
+Generate `BETTER_AUTH_SECRET` with: `openssl rand -base64 32`. This secret is also used to encrypt user-stored API keys.
+
+Anthropic API keys are provided per-user via the Settings UI (stored encrypted in the database).
 
 `BASE_URL` defaults to `http://localhost:3000` for development. Set it to your production domain for deployment.
 

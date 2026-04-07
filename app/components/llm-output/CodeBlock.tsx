@@ -60,7 +60,7 @@ export const CodeBlock: LLMOutputComponent = ({ blockMatch }) => {
     return (
       <div className="relative my-4">
         <CopyButton code={code} />
-        <pre className="overflow-x-hidden whitespace-pre-wrap break-words rounded-lg border border-border bg-muted p-4">
+        <pre className="overflow-x-auto rounded-lg border border-border bg-muted py-8 px-4">
           <code>{code}</code>
         </pre>
       </div>
@@ -68,9 +68,11 @@ export const CodeBlock: LLMOutputComponent = ({ blockMatch }) => {
   }
 
   return (
-    <div className="relative my-4 overflow-x-hidden rounded-lg border border-border [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:p-4">
+    <div className="relative my-4 rounded-lg border border-border">
       <CopyButton code={code} />
-      {parseHtml(html)}
+      <div className="overflow-x-auto [&_pre]:min-w-full [&_pre]:w-fit [&_pre]:py-8 [&_pre]:px-4">
+        {parseHtml(html)}
+      </div>
     </div>
   );
 };

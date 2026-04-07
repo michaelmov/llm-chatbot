@@ -7,3 +7,4 @@ coverage
 *.lock
 package-lock.json
 next-env.d.ts
+sst-env.d.ts

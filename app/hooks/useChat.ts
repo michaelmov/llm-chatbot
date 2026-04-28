@@ -4,45 +4,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { readSSEStream } from '@/lib/sse';
 import type { Message } from '../components/MessageBubble';
 
-interface SSEStartData {
-  requestId: string;
-  conversationId: string;
-}
-
-interface SSETokenData {
-  token: string;
-}
-
-interface SSEDoneData {
-  requestId: string;
-  text: string;
-  conversationId: string;
-}
-
-interface SSEErrorData {
-  error: string;
-  requestId?: string;
-}
-
-interface SSETitleData {
-  conversationId: string;
-  title: string;
-}
+export type ChatEvent =
+  | { type: 'start'; requestId: string; conversationId: string }
+  | { type: 'token'; token: string }
+  | { type: 'done'; requestId: string; text: string; conversationId: string }
+  | { type: 'title'; conversationId: string; title: string }
+  | { type: 'error'; error: string; requestId?: string };
 
 export interface UseChatOptions {
-  onStart?: (data: SSEStartData) => void;
-  onToken?: (data: SSETokenData) => void;
-  onDone?: (data: SSEDoneData) => void;
-  onError?: (data: SSEErrorData) => void;
-  onTitle?: (data: SSETitleData) => void;
+  onEvent: (event: ChatEvent) => void;
 }
 
-export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatOptions) {
+export function useChat({ onEvent }: UseChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const callbacksRef = useRef({ onStart, onToken, onDone, onError, onTitle });
+
+  const onEventRef = useRef(onEvent);
   useEffect(() => {
-    callbacksRef.current = { onStart, onToken, onDone, onError, onTitle };
+    onEventRef.current = onEvent;
   });
 
   const sendChat = useCallback(
@@ -51,9 +30,7 @@ export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatO
       messages: Pick<Message, 'role' | 'content'>[],
       conversationId?: string
     ) => {
-      // Abort previous request if still in-flight
       abortRef.current?.abort();
-
       const controller = new AbortController();
       abortRef.current = controller;
       setIsStreaming(true);
@@ -62,9 +39,7 @@ export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatO
         const response = await fetch('/api/chat', {
           method: 'POST',
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             requestId,
             messages,
@@ -75,7 +50,7 @@ export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatO
 
         if (!response.ok) {
           const text = await response.text().catch(() => response.statusText);
-          callbacksRef.current.onError?.({ error: text, requestId });
+          onEventRef.current({ type: 'error', error: text, requestId });
           setIsStreaming(false);
           return;
         }
@@ -88,20 +63,20 @@ export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatO
                 const parsed = JSON.parse(data);
                 switch (event) {
                   case 'start':
-                    callbacksRef.current.onStart?.(parsed);
+                    onEventRef.current({ type: 'start', ...parsed });
                     break;
                   case 'token':
-                    callbacksRef.current.onToken?.(parsed);
+                    onEventRef.current({ type: 'token', ...parsed });
                     break;
                   case 'done':
-                    callbacksRef.current.onDone?.(parsed);
+                    onEventRef.current({ type: 'done', ...parsed });
                     setIsStreaming(false);
                     break;
                   case 'title':
-                    callbacksRef.current.onTitle?.(parsed);
+                    onEventRef.current({ type: 'title', ...parsed });
                     break;
                   case 'error':
-                    callbacksRef.current.onError?.(parsed);
+                    onEventRef.current({ type: 'error', ...parsed });
                     setIsStreaming(false);
                     break;
                 }
@@ -114,10 +89,9 @@ export function useChat({ onStart, onToken, onDone, onError, onTitle }: UseChatO
         );
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          // Expected on cancellation — isStreaming already set by cancelStream
           return;
         }
-        callbacksRef.current.onError?.({ error: 'Connection failed', requestId });
+        onEventRef.current({ type: 'error', error: 'Connection failed', requestId });
         setIsStreaming(false);
       }
     },

@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useLayoutEffect, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { v4 as uuidv4 } from 'uuid';
-import { useChatContext } from '../c/ChatProvider';
+import { useChatMessages } from '../c/ChatProvider';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -17,69 +16,19 @@ interface ChatContainerProps {
 
 export function ChatContainer({ initialMessages, conversationTitle }: ChatContainerProps) {
   const params = useParams();
-  const conversationId = params?.conversationId as string | undefined;
+  const conversationId = (params?.conversationId as string | undefined) ?? null;
 
-  const {
-    sendChat,
-    cancelStream,
-    isStreaming,
-    pendingConvId,
-    streamingMessageId,
-    pendingMessages,
-    clearPendingMessages,
-    addPendingUserMessage,
-  } = useChatContext();
-
-  const convKey = conversationId ?? null;
-  const messages = useMemo(() => {
-    let local = pendingConvId === convKey ? pendingMessages : [];
-    if (local.length > 0) {
-      const lastInitial = initialMessages.at(-1);
-      const pendingUser = local.find((m) => m.role === 'user');
-      if (
-        pendingUser &&
-        lastInitial?.role === 'user' &&
-        lastInitial.content === pendingUser.content
-      ) {
-        local = local.filter((m) => m.role !== 'user');
-      }
-    }
-    return [...initialMessages, ...local];
-  }, [initialMessages, pendingMessages, pendingConvId, convKey]);
-
-  const isCurrentConvStreaming = isStreaming && pendingConvId === convKey;
-
-  // Once server data refreshes (initialMessages updates) and streaming is done,
-  // clear stale pending messages before paint to avoid one-frame duplication.
-  useLayoutEffect(() => {
-    if (!isCurrentConvStreaming && pendingConvId === convKey && pendingMessages.length > 0) {
-      clearPendingMessages();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when server data refreshes
-  }, [initialMessages]);
-
-  const currentStreamingMessageId = isCurrentConvStreaming ? streamingMessageId : null;
+  const { messages, streamingMessageId, isStreaming, sendChat, cancelStream } = useChatMessages(
+    initialMessages,
+    conversationId
+  );
 
   const handleSend = useCallback(
     (content: string) => {
-      const userMessage: Message = { id: uuidv4(), role: 'user', content };
-
-      addPendingUserMessage(userMessage, conversationId);
-
-      const requestId = uuidv4();
-      const allMessages = [...messages, userMessage];
-      sendChat(
-        requestId,
-        allMessages.map(({ role, content: c }) => ({ role, content: c })),
-        conversationId
-      );
+      sendChat(content, messages, conversationId ?? undefined);
     },
-    [messages, sendChat, conversationId, addPendingUserMessage]
+    [sendChat, messages, conversationId]
   );
-
-  const handleStop = useCallback(() => {
-    cancelStream();
-  }, [cancelStream]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background">
@@ -92,16 +41,16 @@ export function ChatContainer({ initialMessages, conversationTitle }: ChatContai
         <div className="mx-auto h-full max-w-2xl">
           <MessageList
             messages={messages}
-            isStreaming={isCurrentConvStreaming}
-            streamingMessageId={currentStreamingMessageId}
+            isStreaming={isStreaming}
+            streamingMessageId={streamingMessageId}
           />
         </div>
       </div>
       <div className="mx-auto w-full max-w-2xl px-4 py-4">
         <ChatInput
           onSend={handleSend}
-          onStopGeneration={handleStop}
-          isLoading={isCurrentConvStreaming}
+          onStopGeneration={cancelStream}
+          isLoading={isStreaming}
           placeholder="Message..."
           tools={[]}
         />
